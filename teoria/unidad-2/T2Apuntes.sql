@@ -508,3 +508,355 @@ UNION
  WHERE  Nombre LIKE "%x"
  ORDER BY 1 LIMIT 5) -- solo afecta a los parentesis
  ORDER BY 1 LIMIT 7; -- Afecto a todo 
+ 
+ -- 40. Nombre de las ciudades cuyo nombre comienza por 'Vale' o que tienen entre 730 mil y 740 mil habitantes. No usar OR, usar UNION
+
+-- 41. Listado de países, ciudades y lenguas
+
+-- 42. Listado de países, ciudades y lenguas indicando si es un país, una ciudad o una lengua
+
+SELECT pcl AS 'País, ciudad o lengua', Tipo
+FROM 
+   (SELECT Nombre AS 'pcl', 'País' AS 'Tipo'
+    FROM   Pais
+    UNION ALL
+    SELECT Nombre, 'Ciudad'
+    FROM   Ciudad
+    UNION ALL
+    SELECT DISTINCT Lengua, 'Lengua'
+    FROM   LenguaPais) AS tmp
+WHERE  pcl IN (
+   SELECT pcl
+   FROM 
+      (SELECT Nombre AS 'pcl', 'País' AS 'Tipo'
+       FROM   Pais
+       UNION ALL
+       SELECT Nombre, 'Ciudad'
+       FROM   Ciudad
+       UNION ALL
+       SELECT DISTINCT Lengua, 'Lengua'
+       FROM   LenguaPais) AS tmp
+   GROUP BY pcl
+   HAVING COUNT(*)>1)
+ORDER BY pcl;
+
+-- FULL JOIN en Videojuegos
+SELECT *
+FROM   Videojuegos LEFT JOIN Generos
+ON     Videojuegos.IdGenero = Generos.Idgenero
+UNION ALL
+SELECT Videojuegos.*, Generos.*
+FROM   Generos LEFT JOIN Videojuegos
+ON     Generos.Idgenero = Videojuegos.IdGenero
+WHERE  Videojuegos.Id IS NULL;
+
+/*
+Fútbol
+
+Equipos
+Id Nombre       AnyoFundacion IdPatrocinador
+1  Manchester   1878          1
+2  Real Madrid  1902          1
+3  FC Barcelona 1899          2
+4  Albacete BP  1939          NULL
+
+Patrocinadores
+Id Nombre
+1  Adidas
+2  Nike
+3  RedBull
+*/
+
+SELECT  Equipos.Nombre AS 'Equipos', Patrocinadores.Nombre AS 'Patrocinadores'
+FROM    Equipos LEFT JOIN Patrocinadores
+ON      Equipos.IdPatrocinador = Patrocinadores.Id
+UNION ALL
+SELECT  Equipos.Nombre, Patrocinadores.Nombre
+FROM    Patrocinadores LEFT JOIN Equipos
+ON      Equipos.IdPatrocinador = Patrocinadores.Id
+WHERE   Equipos.Id IS NULL;
+
+-- 43. MySQL no tiene la orden FULL JOIN por lo que nos ayudaremos de UNION. Listado de países con sus ciudades (sólo los nombres) en el que aparezcan todos los países, aunque no tengan ciudades y todas las ciudades, aunque no sean ciudad de ningún país
+
+-- 44. Listado de todas las ciudades junto con el nombre del país del que son capital en el que salgan todos los países y todas las ciudades
+
+-- 45. Listado de ciudades o países que tienen más de un millón de habitantes ordenado alfabéticamente. Nota: queremos saber cuándo se trata de una ciudad y cuándo se trata de un país
+
+-- 46. Listado de los diez países más poblados junto las diez ciudades más pobladas ordenados por población de menor a mayor. Queremos identificar cuando es un país y cuando es una ciudad
+
+-- -----------------------------------------------------------------------------
+-- JOIN de una tabla consigo misma
+-- -----------------------------------------------------------------------------
+
+-- 47. Para elaborar un juego necesitamos un listado de parejas de países que tengan la misma población
+
+-- 48. Para elaborar un juego, deseamos un listado de parejas de países del continente europeo (europe) con más de 50 millones de habitantes de manera que el año de independencia del primer país sea menor que el del segundo
+
+-- 49. Listado de jefes de Neptuno
+
+-- 50. Listado de subordinados de Neptuno
+
+-- 51. Empleados cuyo jefe gana menos de 2000€
+
+-- 52. Pedidos (indicar IdPedido) del año 1996 de empleados cuyo jefe trabaja con el territorio de New York
+
+-- -----------------------------------------------------------------------------
+-- Consultas de LEFT JOIN con Neptuno
+-- -----------------------------------------------------------------------------
+
+/*
+Productos que no tienen proveedor
+Proveedores que no proveen ningún producto
+Productos que no pertenecen a ninguna categoría
+Categorías que no tienen ningún producto
+Pedidos que no tienen ningún producto
+Productos que no han sido pedidos nunca
+Proveedores que tienen algún producto que no ha sido pedido nunca
+Pedidos sin cliente
+Pedidos sin empleado
+Clientes sin pedidos
+Empleados sin pedidos
+*/
+
+-- -----------------------------------------------------------------------------
+-- Subconsultas de Escalar
+-- -----------------------------------------------------------------------------
+
+--- Vamos a comprobar que solo existe la consulta Escalar
+
+-- 53. Listado de las ciudades que tienen la misma población que la ciudad El Limón
+
+SELECT Poblacion FROM Ciudad WHERE Nombre = "el limon";
+
+SELECT Nombre AS "Ciudad" FROM Ciudad Where Poblacion = 90000;
+
+SELECT Nombre AS "Ciudad" 
+FROM   Ciudad 
+Where  Poblacion = (
+	SELECT Poblacion 
+	FROM   Ciudad 
+	WHERE  Nombre = "el limon");
+	
+	
+SELECT Nombre AS "Ciudad" 
+FROM   Ciudad 
+Where  Poblacion = (
+	SELECT Poblacion 
+	FROM   Ciudad 
+	WHERE  Nombre = "valencia"); -- No se puede da error
+	
+
+-- Forma correcta
+SELECT Count(*) 
+FROM   Ciudad 
+WHERE  Nombre = "el limon"; --Debe dar uno para ejecutar la consulta principal
+
+
+SELECT Nombre AS "Ciudades que tienen la isma poblacion que el limon" 
+FROM   Ciudad 
+Where  Poblacion = (
+	SELECT Poblacion 
+	FROM   Ciudad 
+	WHERE  Nombre = "el limon"
+	LIMIT 1 -- Es obligatorio en clase, es un seguro que se suele usar en bases de datos con altaas peticiones);
+	
+-- 54. Listado de las ciudades que tienen la misma población que la ciudad El Limón. Quita del resultado la ciudad de El Limón, que ya sabemos que tiene los mismos habitantes que El Limón
+
+SELECT Count(*) 
+FROM   Ciudad 
+WHERE  Nombre = "El Limón"; --Debe dar uno para ejecutar la consulta principal
+
+
+SELECT Nombre AS "Ciudades que tienen la isma poblacion que El Limón" 
+FROM   Ciudad 
+Where  Poblacion = (
+	SELECT Poblacion 
+	FROM   Ciudad 
+	WHERE  Nombre = "El Limón"
+	LIMIT 1) 
+	AND Nombre <> "El Limón";
+	
+-- 55. Listado de las ciudades que tienen la misma población que la ciudad de Guadalupe
+
+SELECT Count(*) 
+FROM   Ciudad 
+WHERE  Nombre = "Guadalupe"; -- Debe dar uno para ejecutar la consulta principal
+
+
+SELECT Nombre AS "Ciudades que tienen la misma poblacion que Guadalupe" 
+FROM   Ciudad 
+Where  Poblacion = (
+	SELECT Poblacion 
+	FROM   Ciudad 
+	WHERE  Nombre = "Guadalupe"
+	LIMIT 1);
+	
+-- 56. Listado de las ciudades que tienen una población mayor que Madrid y menor que Berlín
+SELECT Count(*) 
+FROM   Ciudad 
+WHERE  Nombre = "Madrid"; -- Debe dar uno para ejecutar la consulta principal
+
+SELECT Count(*) 
+FROM   Ciudad 
+WHERE  Nombre = "Berlín"; -- Debe dar uno para ejecutar la consulta principal
+
+-- Otra forma de consultar
+SELECT (
+	SELECT Count(*) = 1
+	FROM   Ciudad 
+	WHERE  Nombre = "Madrid")
+	AND(
+	SELECT Count(*) = 1 
+	FROM   Ciudad 
+	WHERE  Nombre = "Berlín") AS "Se puede ejecutar"; -- Debe dar verdadero(1) para ejecutar la consulta principal
+
+SELECT Nombre AS "Ciudades que tienen la misma poblacion que Guadalupe" 
+FROM   Ciudad 
+Where  Poblacion > (
+	SELECT Poblacion 
+	FROM   Ciudad 
+	WHERE  Nombre = "Madrid"
+	LIMIT 1) 
+	AND Poblacion < (
+	SELECT Poblacion 
+	FROM   Ciudad 
+	WHERE  Nombre = "Berlín"
+	LIMIT 1);
+	
+-- 57. Listado de países en los que el español (Spanish) es oficial y cuyo porcentaje de hablantes es mayor o igual que el del español España (ESP)
+SELECT Nombre AS "Paises que hablan mas español que españa"
+FROM   Pais JOIN LenguaPais
+ON     Pais.Codigo = LenguaPais.CodigoPais
+WHERE  LenguaPais.EsOficial = "T" 
+	   AND Lengua = "Spanish" 
+	   AND Porcentaje >= (
+					  SELECT Porcentaje 
+					  FROM   LenguaPais 
+					  WHERE  CodigoPais = "ESP" 
+							 AND Lengua = "Spanish"); 
+		-- No puede devolver mas de un registro porque codigoPais es una clave primaria
+							 
+	-- No es necesario hacer porque tanto como CodigoPais coo Lengua son claves primarias en la tabla LenguaPais por lo tanto la subconsulta devuelve un escalar y no hace falta hacer comprobaciones
+
+-- 58. Listado de capitales que tienen una población como mínimo 10 veces superior a la de la ciudad de Alicante
+SELECT COUNT(*) FROM Ciudad WHERE Nombre LIKE "Alicante%"; -- Debe dar uno 
+
+SELECT Ciudad.Nombre AS "Capitales con poblacion mayor a Alicante"
+FROM Ciudad Join Pais
+ON Paises.Capital = Ciudad.Id
+WHERE Ciudad.Poblacion >= (SELECT Poblacion FROM Ciudad WHERE Nombre LIKE "Alicante%" LIMIT 1); 
+ 
+-- 59. Capitales del continente africano con el mismo idioma oficial que el idioma oficial de Egipto (Egypt)
+SELECT COUNT(*) 
+FROM   LenguaPais JOIN Pais 
+ON     Lengua.CodigoPais = Pais.Codigo 
+WHERE  Pais.Nombre = "Egypto" 
+	   AND LenguaPais.EsOficial = "T"; -- Debe dar uno 
+
+SELECT Ciudad.Nombre AS "Capitales del continente africano con el mismo idioma oficial que el idioma oficial de Egipto"
+FROM   Ciudad  JOIN Lengua Join Pais
+ON     Paises.Capital = Ciudad.Id 
+	   AND  LenguaPais.CodigoPais = Pais.Codigo
+WHERE  Continente = "Africa" 
+       AND EsOficial = "T" 
+	   AND Lengua = (
+				SELECT COUNT(*) 
+				FROM   LenguaPais JOIN Pais 
+				ON     Lengua.CodigoPais = Pais.Codigo 
+				WHERE  Pais.Nombre = "Egypto" 
+					   AND LenguaPais.EsOficial = "T" 
+				LIMIT 1); 
+ 
+-- 60. Listado de países, su año de independencia y su densidad de población para países con un año de independencia posterior al de España y con una densidad de población superior a la de Francia (France)
+SELECT COUNT(*) FROM Pais WHERE Nombre = "España"; -- Debe dar uno
+
+SELECT COUNT(*) FROM Pais WHERE Nombre = "France"; -- Debe dar uno
+
+SELECT 
+		Nombre "Pais", 
+		AnyIndep "Año de independencia", 
+		ROUND(Poblacion/Superficie) AS "Densidad de poblacion"
+FROM    Pais
+WHERE   AnyIndep > (
+				SELECT AnyIndep 
+				FROM   Pais 
+				WHERE  Nombre = "España" 
+				LIMIT 1) 
+	    AND Poblacion/Superficie > (
+								SELECT Poblacion/Superficie 
+								FROM   Pais 
+								WHERE  Nombre = "France" 
+								LIMIT 1);
+
+
+-- -----------------------------------------------------------------------------
+-- Subconsultas de columna convertida a escalar
+-- ----------------------------------------------------------------------------- 
+-- 61. Ciudades españolas con una población superior a la media (de la población de las ciudades españolas)
+
+SELECT  Ciudad.Nombre AS "Ciudad"
+FROM  	Ciudad JOIN Pais 
+ON    	Ciudad.CodigoPais = Pais.Codigo 
+WHERE 	Pais.Nombre = "Spain" 
+		AND Ciudad.Poblacion > (
+			SELECT AVG(Ciudad.Poblacion) 
+			FROM   Ciudad JOIN Pais 
+			ON     Ciudad.CodigoPais = Pais.Codigo 
+			WHERE  Pais.Nombre = "Spain");
+ 
+-- 62. Ciudades más pobladas que la ciudad de mayor población del continente europeo
+
+SELECT Nombre 
+FROM   Ciudad 
+WHERE  Poblacion > (
+			SELECT MAX(Ciudad.Poblacion) 
+			FROM   Ciudad JOIN Pais 
+			ON     Ciudad.CodigoPais = Pais.Codigo 
+			WHERE  Continente = "Europe");
+
+-- 63. Ciudades con más población que la población total de todas las ciudades de Francia
+SELECT Nombre 
+FROM   Ciudad 
+WHERE  Poblacion > (
+			SELECT SUM(Ciudad.Poblacion) 
+			FROM   Ciudad JOIN Pais 
+			ON     Ciudad.CodigoPais = Pais.Codigo 
+			WHERE  Pais.Nombre = "France");
+
+-- 64. Países con un PNB mayor que el país europeo con mayor PNB
+SELECT Nombre 
+FROM   Pais 
+WHERE  PNB > (
+			SELECT MAX(PNB) 
+			FROM   Pais 
+			WHERE  Continente = "Europe");
+
+
+-- 65. Ciudades que pertenecen a países que tienen una renta per cápita mayor que la renta per cápita media de los países en los que el inglés es lengua oficial
+SELECT Nombre 
+FROM   LenguaPais JOIN Pais 
+ON     LenguaPais.CodigoPais = Pais.Codigo 
+WHERE  EsOficial = "T" 
+	   AND Lengua = "English";
+	  
+SELECT PNB * 1000000 / poblacion AS "Renta per capita de paises que hablan ingles" 
+FROM  LenguaPais JOIN Pais 
+ON    LenguaPais.CodigoPais = Pais.Codigo 
+WHERE EsOficial = "T" 
+	  AND Lengua = "English";
+	  
+SELECT AVG(PNB * 1000000 / poblacion) AS "Media de Renta per capita de paises que hablan ingles" 
+FROM   LenguaPais JOIN Pais 
+ON     LenguaPais.CodigoPais = Pais.Codigo 
+WHERE  EsOficial = "T" 
+	   AND Lengua = "English";
+
+SELECT Ciudad.Nombre 
+FROM   Ciudad JOIN Pais 
+ON     Ciudad.CodigoPais = Pais.Codigo 
+WHERE  PNB * 1000000 / Pais.Poblacion > (
+			SELECT AVG(PNB * 1000000 / Pais.poblacion)
+			FROM LenguaPais JOIN Pais 
+			ON LenguaPais.CodigoPais = Pais.Codigo 
+			WHERE EsOficial = "T" 
+				  AND Lengua = "English"); 

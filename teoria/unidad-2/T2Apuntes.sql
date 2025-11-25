@@ -860,3 +860,80 @@ WHERE  PNB * 1000000 / Pais.Poblacion > (
 			ON LenguaPais.CodigoPais = Pais.Codigo 
 			WHERE EsOficial = "T" 
 				  AND Lengua = "English"); 
+
+
+-- -----------------------------------------------------------------------------
+-- Subconsultas de columna
+-- -----------------------------------------------------------------------------
+
+-- Manual de MySQL v8.4 15.2.15.3 Subqueries with ANY, IN, or SOME
+
+-- Creamos la siguiente BD
+CREATE SCHEMA subconsultas;
+USE subconsultas;
+CREATE TABLE ta (c1 int(2));
+INSERT INTO  ta VALUES (15);
+INSERT INTO  ta VALUES (10);
+
+CREATE TABLE tan (c1 int(2));
+INSERT INTO  tan VALUES (15);
+INSERT INTO  tan VALUES (10);
+INSERT INTO  tan VALUES ();
+
+CREATE TABLE tb (c1 int(2), c2 CHAR(10));
+INSERT INTO  tb VALUES (10, 'v1');
+INSERT INTO  tb VALUES (10, 'v2');
+INSERT INTO  tb VALUES (5,  'v3');
+
+SELECT * FROM ta;
+SELECT * FROM tan;
+SELECT * FROM tb;
+
+
+/*
+ANY y ALL
+En subconsultas que devuelven una columna, ANY quiere decir alguno de los registros de la subconsulta y ALL todos los registros.
+*/
+
+-- Comportamiento de ANY y ALL con nulos y listas vacías
+/*
+-- ANY
+¿10 = ANY (15, 10)?           TRUE 		SELECT 10 = ANY (SELECT C1 FROM Ta);
+¿10 = ANY (15, 10, NULL)?  	  TRUE 		SELECT 10 = ANY (SELECT C1 FROM Tan);
+¿30 = ANY (15, 10)?        	  FALSE 	SELECT 30 = ANY (SELECT C1 FROM Ta);
+¿30 = ANY (15, 10, NULL)?     NULL 		SELECT 30 = ANY (SELECT C1 FROM Tan);
+¿10 = ANY ()?                 FALSE 	SELECT 10 = ANY 
+											(SELECT C1 
+											 FROM Tan 
+											 WHERE C1 = 666);
+
+-- ALL
+¿10 <> ALL (15, 10)?          FALSE 	SELECT 10 <> ALL (SELECT C1 FROM Ta);  
+¿10 <> ALL (15, 10, NULL)?	  FALSE 	SELECT 10 <> ALL (SELECT C1 FROM Tan);
+¿30 <> ALL (15, 10)?       	  TRUE 		SELECT 30 <> ALL (SELECT C1 FROM Ta);
+¿30 <> ALL (15, 10, NULL)? 	  NULL 		SELECT 30 <> ALL (SELECT C1 FROM Tan);
+¿10 <> ALL ()?                TRUE 		SELECT 10 <> ALL 
+											(SELECT C1 
+											 FROM Tan 
+											 WHERE C1 = 666);
+											 
+											 
+NO tiene MUCHO SENTIDO      DA SIEMPRE
+¿10 =  ALL (15, 10)?  		  FALSE 	SELECT 10 = ALL (SELECT C1 FROM Ta);
+¿10 <> ANY (15, 10)? 		  TRUE 		SELECT 10 <> ANY (SELECT C1 FROM Ta);
+*/
+
+/*
+IN  	<=> = ANY
+NOT IN 	<=> <> ALL
+SOME 	<=> ANY (No lo usaremos en clase)
+*/
+
+SELECT * FROM tb WHERE c1 = ANY (SELECT c1 from ta);
+SELECT * FROM tb WHERE c1 = ANY (SELECT c1 from tan);
+SELECT * FROM tb WHERE c1 = ANY (SELECT c1 from ta WHERE c1 = 666);
+
+
+SELECT * FROM tb WHERE c1 <> ALL (SELECT c1 from ta);
+SELECT * FROM tb WHERE c1 <> ALL (SELECT c1 from tan);
+SELECT * FROM tb WHERE c1 <> ALL (SELECT c1 from ta WHERE c1 = 666);

@@ -937,3 +937,252 @@ SELECT * FROM tb WHERE c1 = ANY (SELECT c1 from ta WHERE c1 = 666);
 SELECT * FROM tb WHERE c1 <> ALL (SELECT c1 from ta);
 SELECT * FROM tb WHERE c1 <> ALL (SELECT c1 from tan);
 SELECT * FROM tb WHERE c1 <> ALL (SELECT c1 from ta WHERE c1 = 666);
+
+
+/*
+Resumen:
+Los nulos no afectan al ANY, pero sí a ALL
+Si la subconsulta devuelve un conjunto vacío de registros, ANY devuelve siempre falso y la consulta principal no devolverá ningún registro (salvo que pongamos NOT); y ALL devuelve siempre verdadero y la consulta principal devolverá todos los registros (salvo que pongamos NOT). ANY no devuelve ninguno y ALL devuelve todos.
+
+Lo de cual es el comportamiento deseado de ANY y ALL cuando la subconsulta devuelve un conjunto vacío de registros no está claro. Si cogemos a una persona que no sabe informática y le pedimos que seleccione a los alumnos de nuestra clase cuya edad es distinta de la de todos los alumnos de la clase de al lado y esta persona va a la clase de al lado y descubre que no hay nadie, seguramente volverá y en vez de coger a todos los alumnos de nuestra clase nos dirá que en la clase de al lado no había nadie, es decir, nos dará un error.
+
+Parece ser que lo que no es lógico es que en una consulta de ANY o de ALL, la subconsulta de un conjunto vacío de registros. Por lo tanto, en los ejercicios que hagamos, lo importante es saber cómo se comportará la consulta principal en caso de que la subconsulta de un conjunto vacío de registros. Lo de si es lógico o no dependerá de cada caso y lo más normal sería sacar un aviso al usuario de que la subconsulta a dado un conjunto vacío de registros (expresado de manera inteligible para el usuario).
+*/
+
+-- Los NULL afectan a ALL pero no a ANY
+-- Si la subconsulta es vaica con ANY dara empty set 
+-- Si la subconsulta es vacia con ALL devuelve todos
+
+-- ¡IMPORTANTE!
+-- En todas las consultas de ANY, ALL, IN tenenmos que hacer tres cosas:
+-- 1. Indicar qué pasa si hay nulos en la subconsulta
+-- 2. Indicar qué pasa si la subconsulta devuelve un conjunto vacío de registros
+-- 3. Comprobar que la subconsulta no devuelve un conjunto vacío de registros	
+
+
+-- 66. Países con un año de independencia igual al de alguno de los países con una superficie mayor que 500000 kilómetros cuadrados
+SELECT Nombre AS "Paises"  FROM Pais WHERE Superficie > 500000;
+
+SELECT Nombre AS "Pais"
+FROM Pais
+WHERE AnyIndep IN /* = ANY */ ( 
+				SELECT AnyIndep 
+				FROM Pais 
+				WHERE Superficie > 500000);
+				
+/*
+ANY con las listas vacías:
+Podemos ver como si ejecutamos la consulta con 500.000 km2 salen 115 registros
+Si la hacemos con 5.000.000 km2 ya sólo hay tres países en la subconsulta y la consulta principal da menos registros
+Si la hacemos con 50.000.000 km2 la subconsulta da un conjunto vacío de registros porque ya no hay países con esa superficie y la consulta principal da también un conjunto vacío de registros lo cual es lógico viendo la tendencia.
+*/
+
+-- 67 Países con un año de independencia distinto del de todos los países con una superficie mayor que 500000 kilómetros cuadrados
+SELECT COUNT(*) > 0 AS "Paises"  
+FROM Pais 
+WHERE Superficie > 500000 
+	  AND AnyIndep IS NOT NULL; 
+-- Si en la subconsulta hay nulos (como en este caso) no saldra ningun registro asi que los tenemos que eliminar con IS NOT NULL, 
+	  
+
+
+SELECT Nombre AS "Pais"
+FROM Pais
+WHERE AnyIndep NOT IN /* <> ALL */ ( 
+				SELECT AnyIndep 
+				FROM Pais 
+				WHERE Superficie > 500000 
+					  AND AnyIndep IS NOT NULL /*Obligatorio */);
+
+/*
+ALL con las listas vacías:
+Podemos ver como si ejecutamos la consulta con 500.000 km2 salen 77 registros
+Si la hacemos con 5.000.000 km2 ya sólo hay tres países en la subconsulta y la consulta principal da más registros (167)
+Si la hacemos con 50.000.000 km2 la subconsulta da un conjunto vacío de registros porque ya no hay países con esa superficie y la consulta principal da todos los registros lo cual es lógico viendo la tendencia.
+
+Vemos como desde este punto de vista, el funcionamiento de ANY y ALL con las subconsultas que generan listas vacías parece lógico.
+*/
+
+/* Resumen:
+= ANY 	-> Tiene sentido
+<> ALL 	-> Tiene sentido
+<> ANY 	-> No tiene sentido (Saldran todos)
+= ALL 	-> No tiene sentido (No saldra ninguno)
+> ANY 	-> Tiene sentido ( es igual > MIN() )
+> ALL 	-> Tiene sentido ( es igual > MAX() )
+< ANY 	-> Tiene sentido ( es igual < MAX() )
+< ALL 	-> Tiene sentido ( es igual < MIN() )
+*/
+
+
+DROP PROCEDURE IF EXISTS Consulta66;
+delimiter //
+CREATE PROCEDURE Consulta66(ParamSup INT)
+BEGIN
+        FROM   Pais
+    IF (SELECT COUNT(*)>0
+        WHERE  Superficie > ParamSup AND AnyIndep IS NOT NULL)
+   
+   THEN
+   	SELECT Pais.Nombre AS 'País', AnyIndep
+	FROM   Pais  
+	WHERE  AnyIndep <> ALL (    
+		SELECT AnyIndep
+		FROM   Pais
+		WHERE  Superficie > ParamSup AND AnyIndep IS NOT NULL);
+   
+   ELSE
+       SELECT CONCAT('No hay ningún país con una superficie mayor que ', ParamSup, ' kilómetros cuadrados') AS 'Error:';  
+   END IF;
+END //delimiter ;
+
+CALL Consulta66(500000);
+
+-- 68. Países con un año de independencia mayor que alguno de los países cuya capital tiene más de cinco millones de habitantes. Nota: obtener las dos soluciones (ANY-ALL-IN y MAX-MIN). Reescribe el enunciado para que MAX-MIN en vez de ANY-ALL-IN
+
+-- Países con un año de independencia mayor que el menor año de independencia de los países cuya capital tienen más de cinco millones de habitantes.
+-- Países con un año de independencia posterior al del  primer pais en independizarse con una capital de más de cinco millones de habitantes.
+
+SELECT DISTINCT AnyIndep  --DISTINCT S3E PUEDE PONER SIEMPRE PERO NO CAMBIA
+FROM Ciudad JOIN Pais 
+ON Ciudad.Id = Pais.Capital 
+WHERE Ciudad.Poblacion > 5000000;
+
+SELECT DISTINCT Count(*) > 0 
+FROM Ciudad JOIN Pais 
+ON Ciudad.Id = Pais.Capital 
+WHERE Ciudad.Poblacion > 5000000; -- Deberia ser true para poder usarla, Y SI es NULL en any no afecta pero en 
+
+SELECT Nombre AS "Pais"
+FROM Pais
+WHERE AnyIndep > ANY(
+				SELECT DISTINCT AnyIndep 
+				FROM Ciudad JOIN Pais 
+				ON Ciudad.Id = Pais.Capital 
+				WHERE Ciudad.Poblacion > 5000000);
+				
+SELECT Nombre AS "Pais"
+FROM Pais
+WHERE AnyIndep >(
+				SELECT MIN(AnyIndep) 
+				FROM Ciudad JOIN Pais 
+				ON Ciudad.Id = Pais.Capital 
+				WHERE Ciudad.Poblacion > 5000000); -- Sin analisis e igual a la anterior
+				
+				
+SELECT Nombre AS "Pais"
+FROM Pais
+WHERE AnyIndep > ALL(
+				SELECT DISTINCT AnyIndep 
+				FROM Ciudad JOIN Pais 
+				ON Ciudad.Id = Pais.Capital 
+				WHERE Ciudad.Poblacion > 5000000);
+				
+SELECT Nombre AS "Pais"
+FROM Pais
+WHERE AnyIndep >(
+				SELECT MAX(AnyIndep)
+				FROM Ciudad JOIN Pais 
+				ON Ciudad.Id = Pais.Capital 
+				WHERE Ciudad.Poblacion > 5000000);
+				
+SELECT Nombre AS "Pais"
+FROM Pais
+WHERE AnyIndep IN (
+				SELECT AnyIndep 
+				FROM Ciudad JOIN Pais 
+				ON Ciudad.Id = Pais.Capital 
+				WHERE Ciudad.Poblacion > 5000000);
+
+-- 69. Ciudades del mundo que empiezan por una letra distinta que la letra inicial de las ciudades españolas (con código de país ESP)
+SELECT DISTINCT LEFT(NOMBRE, 1) 
+FROM CIUDAD 
+WHERE CodigoPais = "ESP"; 
+-- Si hay nulos afectaran negativamente pero no hay nulos (hacer siempre)
+
+SELECT Count(*) > 0 /* (hacer siempre) */
+FROM CIUDAD 
+WHERE CodigoPais = "ESP"; 
+-- Si devuelve 0 sacaria todos los registros asi que nos aseguramos que no pase comprobandolo (hacer siempre)
+
+
+SELECT Nombre 
+FROM Ciudad 
+WHERE LEFT(NOMBRE, 1) <> ALL(
+						SELECT DISTINCT LEFT(NOMBRE, 1) 
+						FROM CIUDAD 
+						WHERE CodigoPais = "ESP");
+
+
+-- -----------------------------------------------------------------------------
+--  CONSULTAS DE INTERSECCIÓN DE CONJUNTOS
+-- -----------------------------------------------------------------------------
+
+-- 70. Países cuyo nombre coincide con el de alguna ciudad
+
+SELECT Nombre FROM Ciudad; 
+-- Si LA SUBCONSULTA DEVUELVE UN CONJUNTO VACIO DE REGISTRO NO SALDRA NINGUN Pais
+-- LO NULOS NO AFECTAN. NO PUEDE HABER CIUDADES CON NOMBRES nulos
+
+SELECT COUNT(*) FROM Ciudad; -- DEBE DAR MAYOR QUE 0
+
+SELECT Nombre 
+FROM  Pais 
+WHERE Nombre IN ( SELECT Nombre FROM Ciudad);
+
+-- 71. Países cuyo nombre no coincide con el de ninguna ciudad
+
+SELECT Nombre FROM Ciudad; 
+-- Si LA SUBCONSULTA DEVUELVE UN CONJUNTO VACIO DE REGISTRO SALEN TODOS LOS PAISES
+-- LO NULOS AFECTAN. NO PUEDE HABER CIUDADES CON NOMBRES nulos
+
+SELECT COUNT(*) FROM Ciudad; -- DEBE DAR MAYOR QUE 0 (TRUE)
+
+SELECT Nombre 
+FROM  Pais 
+WHERE Nombre NOT IN ( SELECT Nombre FROM Ciudad);
+
+
+-- 72. Países cuyo nombre coincide con el de alguna lengua
+
+SELECT Lengua FROM LenguaPais; 
+-- Si LA SUBCONSULTA DEVUELVE UN CONJUNTO VACIO DE REGISTRO NO SALDRA NINGUN Pais
+-- LO NULOS NO AFECTAN. NO PUEDE HABER CIUDADES CON NOMBRES nulos
+
+SELECT COUNT(*) FROM LenguaPais; -- DEBE DAR MAYOR QUE 0
+
+SELECT Nombre 
+FROM  Pais 
+WHERE Nombre NOT IN ( SELECT DISTINCT Lengua FROM LenguaPais);
+
+-- 73. Países cuyo nombre no coincide con el de alguna lengua
+-- no tiene sentido
+
+SELECT Lengua FROM LenguaPais;
+-- Si LA SUBCONSULTA DEVUELVE UN CONJUNTO VACIO DE REGISTRO SALEN TODOS LOS PAISES
+-- LO NULOS AFECTAN. NO PUEDE HABER CIUDADES CON NOMBRES nulos
+
+SELECT COUNT(*) FROM LenguaPais; -- DEBE DAR MAYOR QUE 0
+
+SELECT Nombre 
+FROM  Pais 
+WHERE Nombre NOT IN (SELECT Lengua FROM LenguaPais);
+
+-- 74. Lenguas cuyo nombre coincide con el de alguna ciudad
+
+-- Si LA SUBCONSULTA DEVUELVE UN CONJUNTO VACIO DE REGISTRO SALEN TODOS LOS PAISES
+-- LO NULOS AFECTAN. NO PUEDE HABER CIUDADES CON NOMBRES nulos
+
+SELECT COUNT(*) FROM Ciudad;  -- DEBE DAR MAYOR QUE 0 (TRUE)
+
+SELECT Lengua 
+FROM  LenguaPais 
+WHERE Lengua IN (SELECT DISTINCT Nombre FROM Ciudad);
+
+SELECT Nombre 
+FROM  Ciudad 
+WHERE Nombre IN (SELECT DISTINCT Lengua FROM LenguaPais);
+-- Son iguales ambas
+
+
+

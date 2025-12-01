@@ -10,7 +10,7 @@ En este tema el tratamiento de nulos s�lo es obligatorio cuando afectan negati
 -- Tema 2. SQL avanzado I. Consultas de clase
 -- -----------------------------------------------------------------
 
--- calve primaria es el id unico y no null de un registro
+-- clave primaria es el id unico y no null de un registro
 -- clave ajena hace referencia a una clave primaria null y repetida
 
 SELECT *

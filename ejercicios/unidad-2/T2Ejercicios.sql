@@ -89,7 +89,7 @@ ON     LenguaPais.CodigoPais = Pais.Codigo AND Nombre IS NULL;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 11. Nombre de las lenguas que no tienen asignado ning�n pa�s.
-SELECT Lengua, Nombre AS "Pais" 
+SELECT Lengua
 FROM   LenguaPais LEFT JOIN Pais 
 ON     LenguaPais.CodigoPais = Pais.Codigo
 WHERE  Pais.Codigo IS NULL;
@@ -103,7 +103,7 @@ WHERE  LenguaPais.Lengua IS NULL;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 13. Listado de ciudades que pertenecen a pa�ses que tienen lenguas oficiales que s�lo son habladas por menos de un 10% de la poblaci�n.
-SELECT Nombre, Lengua
+SELECT DISTINCT Nombre
 FROM   Ciudad  JOIN LenguaPais
 ON     Ciudad.CodigoPais = LenguaPais.CodigoPais
 WHERE  EsOficial = "T" AND Porcentaje < 10;
@@ -111,18 +111,50 @@ WHERE  EsOficial = "T" AND Porcentaje < 10;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 14. Listado de capitales que pertenecen a pa�ses que tienen lenguas oficiales que s�lo son habladas por menos de un 10% de la poblaci�n.
+SELECT DISTINCT Ciudad.Nombre
+FROM   Ciudad JOIN LenguaPais JOIN Pais
+ON     Ciudad.Id = Pais.Capital AND Ciudad.CodigoPais = LenguaPais.CodigoPais
+WHERE  EsOficial = "T" AND Porcentaje < 10;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 15. Para detectar posibles errores en la base de datos queremos realizar la siguiente consulta: listado de ciudades y pa�ses en los que la poblaci�n de la ciudad sea mayor que la del pa�s al que pertenece. Analiza el resultado.
+SELECT Ciudad.Nombre AS "Ciudad", Pais.Nombre AS "Pais"
+FROM   Ciudad JOIN Pais
+ON     Ciudad.CodigoPais = Pais.Codigo
+WHERE  Ciudad.Poblacion > Pais.Poblacion;
+-- Resultado: 2 registros
+
+-- Aparecen las ciudades Singapore y Gibraltar  y puede ser que la bases de datos tenga datos eroneos y que no se en un sola fuente de la verdad, o que se actualice un datos y no tener en cuenta el otro, ...
+
+SELECT Ciudad.Nombre AS "Ciudad", Pais.Nombre AS "Pais", Ciudad.Poblacion, Pais.Poblacion
+FROM   Ciudad JOIN Pais
+ON     Ciudad.CodigoPais = Pais.Codigo
+WHERE  Pais.Nombre IN ("Gibraltar", "Singapore");
+
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 16. Listado de las lenguas habladas en pa�ses con m�s de doscientos millones de habitantes.
+SELECT DISTINCT Lengua
+FROM   Ciudad  JOIN LenguaPais
+ON     Ciudad.CodigoPais = LenguaPais.CodigoPais
+WHERE  Poblacion > 200000000;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 17. Capitales de pa�ses en los que el ingl�s sea lengua oficial.
+SELECT DISTINCT Ciudad.Nombre
+FROM   Ciudad JOIN LenguaPais JOIN Pais
+ON     Ciudad.Id = Pais.Capital AND Ciudad.CodigoPais = LenguaPais.CodigoPais
+WHERE  EsOficial = "T" AND Lengua = "English";
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 18. Capitales de los pa�ses en los que el ingl�s sea lengua oficial y el pa�s tenga m�s de un mill�n de habitantes y la capital m�s de 200 mil habitantes.
+SELECT DISTINCT Ciudad.Nombre
+FROM   Ciudad JOIN LenguaPais JOIN Pais
+ON     Ciudad.Id = Pais.Capital AND Ciudad.CodigoPais = LenguaPais.CodigoPais
+WHERE  EsOficial = "T"
+       AND Lengua = "English"
+       AND Pais.Poblacion > 1000000
+       AND Ciudad.Poblacion > 200000;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 19. Capitales y lenguas de pa�ses que tienen una densidad de poblaci�n mayor que mil habitantes por kil�metro cuadrado ordenados de mayor a menor densidad de poblaci�n.

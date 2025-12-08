@@ -7,6 +7,9 @@
 -- Tenemos dos clientes sin cafeFavorito asignado
 -- y un cafe del que no tenemos ningún cliente.
 
+----------------------------------------------------------------
+---- Creacion de la base de datos y las tablas
+----------------------------------------------------------------
 
 /*Eliminamos la base de datos entera, por si existiera previamente*/
 DROP DATABASE IF EXISTS Cafeteria;
@@ -54,11 +57,12 @@ INSERT INTO Clientes (Id,Nombre,CafesPorDia,CafeFavorito) VALUES (5,'Ana',1,NULL
 ----------------------------------------------------------------
 ---- CONSULTAS
 ----------------------------------------------------------------
+
+-- --------------------------------------------------------------------------------------
 -- Un SELECT * de cada tabla para ver sus campos y sus registros
 ---- tabla Clientes
-SELECT *
-FROM
-  Clientes;
+SELECT 	*
+FROM  	Clientes;
 +----+--------+-------------+--------------+
 | Id | Nombre | CafesPorDia | CafeFavorito |
 +----+--------+-------------+--------------+
@@ -71,9 +75,8 @@ FROM
 
 
 ---- tabla Cafes
-SELECT *
-FROM
-  Cafes;
+SELECT 	*
+FROM  	Cafes;
 +--------+------------+
 | IdCafe | Nombre     |
 +--------+------------+
@@ -83,11 +86,11 @@ FROM
 +--------+------------+
 
 
+-- --------------------------------------------------------------------------------------
 -- El producto de las tablas con JOIN
 ---- El producto cuando cafe es derecha
-SELECT *
-FROM
-  Clientes JOIN Cafes;
+SELECT 	*
+FROM 	Clientes JOIN Cafes;
 +----+--------+-------------+--------------+--------+------------+
 | Id | Nombre | CafesPorDia | CafeFavorito | IdCafe | Nombre     |
 +----+--------+-------------+--------------+--------+------------+
@@ -110,9 +113,8 @@ FROM
 
 
 ---- El producto cuando Clientes es derecha
-SELECT *
-FROM
-  Cafes JOIN Clientes;
+SELECT 	*
+FROM 	Cafes JOIN Clientes;
 +--------+------------+----+--------+-------------+--------------+
 | IdCafe | Nombre     | Id | Nombre | CafesPorDia | CafeFavorito |
 +--------+------------+----+--------+-------------+--------------+
@@ -134,12 +136,12 @@ FROM
 +--------+------------+----+--------+-------------+--------------+
 
 
+-- --------------------------------------------------------------------------------------
 -- Un JOIN de las dos tablas con elON correspondiente a su relación
 ---- Cuando Cafes es Derecha
-SELECT *
-FROM
-  Clientes JOIN Cafes
-ON Clientes.CafeFavorito = Cafes.IdCafe;
+SELECT 	*
+FROM 	Clientes JOIN Cafes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe;
 +----+--------+-------------+--------------+--------+------------+
 | Id | Nombre | CafesPorDia | CafeFavorito | IdCafe | Nombre     |
 +----+--------+-------------+--------------+--------+------------+
@@ -150,10 +152,9 @@ ON Clientes.CafeFavorito = Cafes.IdCafe;
 
 
 ---- Cuando Clientes es Derecha
-SELECT *
-FROM
-  Cafes JOIN Clientes
-ON Clientes.CafeFavorito = Cafes.IdCafe;
+SELECT 	*
+FROM 	Cafes JOIN Clientes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe;
 +--------+------------+----+--------+-------------+--------------+
 | IdCafe | Nombre     | Id | Nombre | CafesPorDia | CafeFavorito |
 +--------+------------+----+--------+-------------+--------------+
@@ -163,11 +164,12 @@ ON Clientes.CafeFavorito = Cafes.IdCafe;
 +--------+------------+----+--------+-------------+--------------+
 
 
+-- --------------------------------------------------------------------------------------
 -- Un JOIN de las dos tablas en el que aprezcan todos los registros de la tabla derecha
 ---- Cuando Clientes es Derecha
-SELECT Cafes.* , Clientes.*
-FROM Clientes LEFT JOIN Cafes
-ON Clientes.CafeFavorito = Cafes.IdCafe;
+SELECT 	Cafes.* , Clientes.*
+FROM 	Clientes LEFT JOIN Cafes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe;
 +--------+------------+----+--------+-------------+--------------+
 | IdCafe | Nombre     | Id | Nombre | CafesPorDia | CafeFavorito |
 +--------+------------+----+--------+-------------+--------------+
@@ -180,9 +182,9 @@ ON Clientes.CafeFavorito = Cafes.IdCafe;
 
 
 ---- Cuando Cafes es Derecha
-SELECT Clientes.* , Cafes.*
-FROM Cafes LEFT JOIN Clientes
-ON Clientes.CafeFavorito = Cafes.IdCafe;
+SELECT 	Clientes.* , Cafes.*
+FROM 	Cafes LEFT JOIN Clientes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe;
 +------+--------+-------------+--------------+--------+------------+
 | Id   | Nombre | CafesPorDia | CafeFavorito | IdCafe | Nombre     |
 +------+--------+-------------+--------------+--------+------------+
@@ -193,11 +195,12 @@ ON Clientes.CafeFavorito = Cafes.IdCafe;
 +------+--------+-------------+--------------+--------+------------+
 
 
+-- --------------------------------------------------------------------------------------
 -- Un JOIN de las dos tablas en el que aprezcan todos los registros de la tabla izquierda
 ---- Cuando Clientes es Derecha
-SELECT *
-FROM Cafes LEFT JOIN Clientes
-ON Clientes.CafeFavorito = Cafes.IdCafe;
+SELECT 	*
+FROM 	Cafes LEFT JOIN Clientes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe;
 +--------+------------+------+--------+-------------+--------------+
 | IdCafe | Nombre     | Id   | Nombre | CafesPorDia | CafeFavorito |
 +--------+------------+------+--------+-------------+--------------+
@@ -209,9 +212,9 @@ ON Clientes.CafeFavorito = Cafes.IdCafe;
 
 
 ---- Cuando Cafes es Derecha
-SELECT *
-FROM Clientes LEFT JOIN Cafes
-ON Clientes.CafeFavorito = Cafes.IdCafe;
+SELECT 	*
+FROM 	Clientes LEFT JOIN Cafes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe;
 +----+--------+-------------+--------------+--------+------------+
 | Id | Nombre | CafesPorDia | CafeFavorito | IdCafe | Nombre     |
 +----+--------+-------------+--------------+--------+------------+
@@ -223,16 +226,17 @@ ON Clientes.CafeFavorito = Cafes.IdCafe;
 +----+--------+-------------+--------------+--------+------------+
 
 
+-- --------------------------------------------------------------------------------------
 -- Un JOIN de las dos tablas en el que aprezcan todos los registros de la tabla derecha y de la tabla izquierda(FULL JOIN)
 ---- Cuando Clientes es Derecha
-SELECT *
-FROM Cafes LEFT JOIN Clientes
-ON Clientes.CafeFavorito = Cafes.IdCafe
-UNION ALL
-SELECT Cafes.* , Clientes.*
-FROM Clientes LEFT JOIN Cafes
-ON Clientes.CafeFavorito = Cafes.IdCafe
-WHERE Cafes.IdCafe IS NOT NULL;
+SELECT 	*
+FROM 	Cafes LEFT JOIN Clientes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe
+UNION 	ALL
+SELECT 	Cafes.* , Clientes.*
+FROM 	Clientes LEFT JOIN Cafes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe
+WHERE 	Cafes.IdCafe IS NOT NULL;
 +--------+------------+------+--------+-------------+--------------+
 | IdCafe | Nombre     | Id   | Nombre | CafesPorDia | CafeFavorito |
 +--------+------------+------+--------+-------------+--------------+
@@ -247,14 +251,14 @@ WHERE Cafes.IdCafe IS NOT NULL;
 
 
 ---- Cuando Cafes es Derecha
-SELECT *
-FROM Clientes LEFT JOIN Cafes
-ON Clientes.CafeFavorito = Cafes.IdCafe
-UNION ALL
-SELECT Clientes.* , Cafes.*
-FROM Cafes LEFT JOIN Clientes
-ON Clientes.CafeFavorito = Cafes.IdCafe
-WHERE Clientes.Id IS NOT NULL;
+SELECT 	*
+FROM 	Clientes LEFT JOIN Cafes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe
+UNION 	ALL
+SELECT 	Clientes.* , Cafes.*
+FROM 	Cafes LEFT JOIN Clientes
+ON 		Clientes.CafeFavorito = Cafes.IdCafe
+WHERE 	Clientes.Id IS NOT NULL;
 +------+--------+-------------+--------------+--------+------------+
 | Id   | Nombre | CafesPorDia | CafeFavorito | IdCafe | Nombre     |
 +------+--------+-------------+--------------+--------+------------+

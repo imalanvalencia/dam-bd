@@ -658,7 +658,7 @@ Where  Poblacion = (
 	SELECT Poblacion 
 	FROM   Ciudad 
 	WHERE  Nombre = "el limon"
-	LIMIT 1 -- Es obligatorio en clase, es un seguro que se suele usar en bases de datos con altaas peticiones);
+	LIMIT 1) -- Es obligatorio en clase, es un seguro que se suele usar en bases de datos con altaas peticiones);
 	
 -- 54. Listado de las ciudades que tienen la misma población que la ciudad El Limón. Quita del resultado la ciudad de El Limón, que ya sabemos que tiene los mismos habitantes que El Limón
 
@@ -851,15 +851,16 @@ ON     LenguaPais.CodigoPais = Pais.Codigo
 WHERE  EsOficial = "T" 
 	   AND Lengua = "English";
 
-SELECT Ciudad.Nombre 
-FROM   Ciudad JOIN Pais 
-ON     Ciudad.CodigoPais = Pais.Codigo 
-WHERE  PNB * 1000000 / Pais.Poblacion > (
+SELECT 	Ciudad.Nombre 
+FROM   	Ciudad JOIN Pais 
+ON     	Ciudad.CodigoPais = Pais.Codigo 
+WHERE  	PNB * 1000000 / Pais.Poblacion > (
 			SELECT AVG(PNB * 1000000 / Pais.poblacion)
 			FROM LenguaPais JOIN Pais 
 			ON LenguaPais.CodigoPais = Pais.Codigo 
 			WHERE EsOficial = "T" 
-				  AND Lengua = "English"); 
+				  AND Lengua = "English"
+		); 
 
 
 -- -----------------------------------------------------------------------------
@@ -1051,7 +1052,7 @@ WHERE Ciudad.Poblacion > 5000000;
 SELECT DISTINCT Count(*) > 0 
 FROM Ciudad JOIN Pais 
 ON Ciudad.Id = Pais.Capital 
-WHERE Ciudad.Poblacion > 5000000; -- Deberia ser true para poder usarla, Y SI es NULL en any no afecta pero en 
+WHERE Ciudad.Poblacion > 5000000; -- Deberia ser true para poder usarla, Y SI es NULL en ANY no afecta pero en ALL si
 
 SELECT Nombre AS "Pais"
 FROM Pais
@@ -1089,7 +1090,7 @@ WHERE AnyIndep >(
 SELECT Nombre AS "Pais"
 FROM Pais
 WHERE AnyIndep IN (
-				SELECT AnyIndep 
+				SELECT Pais.AnyIndep 
 				FROM Ciudad JOIN Pais 
 				ON Ciudad.Id = Pais.Capital 
 				WHERE Ciudad.Poblacion > 5000000);
@@ -1121,7 +1122,7 @@ WHERE LEFT(NOMBRE, 1) <> ALL(
 -- 70. Países cuyo nombre coincide con el de alguna ciudad
 
 SELECT Nombre FROM Ciudad; 
--- Si LA SUBCONSULTA DEVUELVE UN CONJUNTO VACIO DE REGISTRO NO SALDRA NINGUN Pais
+-- Si LA SUBCONSULTA DEVUELVE UN CONJUNTO VACIO DE REGISTRO NO SALDRAX| NINGUN Pais
 -- LO NULOS NO AFECTAN. NO PUEDE HABER CIUDADES CON NOMBRES nulos
 
 SELECT COUNT(*) FROM Ciudad; -- DEBE DAR MAYOR QUE 0

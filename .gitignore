@@ -1,0 +1,103 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+# Auto-generated files
+*.generated.cs
+
+# Visual Studio files
+.vs/
+
+# Rider files
+.idea/
+
+# Logs
+*.log
+
+# NuGet packages
+*.nupkg
+packages/
+
+# Resharper files
+_ReSharper*/
+*.DotSettings.user
+
+# Publish outputs
+publish/
+
+# Azure Pipelines
+*.azure-pipelines.yml
+
+# Others
+*.cache
+*.dbmdl
+*.bak
+*.backup
+*.pdf
+*.zip
+*.docx
+
+# Backup files
+*.old
+*.orig
+*.tmp
+
+# Rider
+.idea/
+
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# debug information files
+*.dwo
+
+# public files
+*.png
+*.mp4
+*.mp3
+*.jpg
+public/
+

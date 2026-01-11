@@ -213,7 +213,7 @@ WHERE   EXISTS (
             FROM    Ciudad JOIN Pais 
             ON      Ciudad.CodigoPais = Pais.Codigo
             WHERE   Continente = PaisExterno.Continente
-        )
+        );
 
 -- 15. Listado de continentes que no tienen ninguna ciudad
 SELECT  DISTINCT Continente
@@ -223,7 +223,7 @@ WHERE   NOT EXISTS (
             FROM    Ciudad JOIN Pais 
             ON      Ciudad.CodigoPais = Pais.Codigo
             WHERE   Continente = PaisExterno.Continente
-        )
+        );
 
 
 -- 16. Listado de zonas con alguna ciudad de m�s de 5 millones habitantes. Poner las dos soluciones: COUNT(*) y EXISTS
@@ -233,7 +233,7 @@ WHERE   Poblacion (
             SELECT  1
             FROM    Ciudad 
             WHERE   Poblacion 
-        )
+        );
 
 
 SELECT  DISTINCT Zona
@@ -243,4 +243,6 @@ WHERE   EXISTS (
             FROM    Ciudad JOIN Pais 
             ON      Ciudad.CodigoPais = Pais.Codigo
             WHERE   Continente = PaisExterno.Continente
-        )
+        );
+
+SELECT Nombre FROM Pais; 

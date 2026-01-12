@@ -244,10 +244,13 @@ WHERE   EXISTS (
             ON      Ciudad.CodigoPais = Pais.Codigo
             WHERE   Continente = PaisExterno.Continente
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         );
 
 SELECT Nombre FROM Pais; 
 =======
+=======
+>>>>>>> Stashed changes
         )
         
 -- 16. Listado de zonas con alguna ciudad de más de 5 millones habitantes. Poner las dos soluciones: COUNT(*) y EXISTS
@@ -618,5 +621,9 @@ SELECT 		Continente,
                         ROUND(AVG(Poblacion)) AS "Poblacion media", 
                         ROUND(SUM(PNB))  AS "PNB total"
 FROM 			Pais
+<<<<<<< Updated upstream
+GROUP BY 	Continente;
+>>>>>>> Stashed changes
+=======
 GROUP BY 	Continente;
 >>>>>>> Stashed changes

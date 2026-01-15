@@ -616,3 +616,132 @@ SELECT 		Continente,
                         ROUND(SUM(PNB))  AS "PNB total"
 FROM 			Pais
 GROUP BY 	Continente;
+
+-- 31. De cada año de independencia en el que se ha independizado algún país indicar cuántos países se independizaron ese año ordenados desde el año en que se han independizado más países al que menos
+
+-- -----------------------------------------------------------------------------
+-- Agrupando por varios campos
+-- -----------------------------------------------------------------------------
+
+-- 32. De cada continente y cada región queremos saber el número de países que lo componen y el número de países que no tienen datos de su esperanza de vida
+
+-- 33. De cada continente y cada región queremos saber el número de ciudades ordenado de las regiones con más ciudades a las que tienen menos
+
+-- -----------------------------------------------------------------------------
+-- Agrupando por expresiones
+-- -----------------------------------------------------------------------------
+
+-- 34. Número de países que se han independizado cada siglo. Ordena la consulta de manera que obtengamos la mejor información
+/*
+floor()--> hacia abajo
+ceiling()--> hacia arriba
+truncate(,) --> negativos hacia arriba - positivos hacia abajo
+round()(,) --> redondea
+*/
+
+SELECT Nombre, AnyIndep, FLOOR(( AnyIndep -  1)  / 100 ) + 1 AS "Siglo de independencia"
+FROM Pais;
+
+SELECT 		FLOOR(( AnyIndep -  1)  / 100 ) + 1 AS "Siglo de independencia", 
+					COUNT(*) AS "Numero de paise que se independizaron"
+FROM 			Pais
+WHERE 		AnyIndep IS NOT NULL
+GROUP BY 	`Siglo de independencia`
+ORDER BY 	`Siglo de independencia`;
+
+
+SELECT ROUND(FLOOR((AnyIndep - 1) / 100 + 1)+
+            ((SIGN(AnyIndep) - 1) / 2)) AS 'Siglo de independencia',
+       COUNT(*) AS 'Número de países'
+FROM   Pais
+WHERE  AnyIndep IS NOT NULL
+GROUP BY `Siglo de independencia`
+ORDER BY `Siglo de independencia`;
+
+-- Igual, pero usando IF en vez de SIGN
+SELECT IF(FLOOR((AnyIndep-1)/100+1) > 0, FLOOR((AnyIndep-1)/100+1), FLOOR((AnyIndep-1)/100))
+             AS 'Siglo de independencia',
+       COUNT(*) AS 'Número de países'
+FROM   Pais
+WHERE  AnyIndep IS NOT NULL
+GROUP BY `Siglo de independencia`
+ORDER BY `Siglo de independencia`; 
+
+-- 35. Número de ciudades que comienzan por cada letra del alfabeto (es posible que no salga alguna letra). Ordena la consulta de manera que obtengamos la mejor información
+SELECT 		LEFT(Nombre, 1) AS "Letra inicial", 
+					COUNT(*) AS "Número de ciudades que comienzan por esta letra"
+FROM 			Ciudad
+GROUP BY 	`Letra inicial`
+ORDER BY 	`Número de ciudades que comienzan por esta letra` DESC;
+
+-- 36. Número de ciudades cuya población está en cada tramo de medio millón de habitantes (primer tramo, de 0 a medio millón, segundo tramo de medio a un millón, etc). Añadir las columnas desde y hasta de cada tramo
+/* Este el el resultado esperado:
++----------+----------+--------------------+
+| Desde    | Hasta    | Número de ciudades |
++----------+----------+--------------------+
+|        0 |   500000 |               3539 |
+|   500000 |  1000000 |                302 |
+|  1000000 |  1500000 |                108 |
+|  1500000 |  2000000 |                 38 | */
+SELECT 	
+				FLOOR(Poblacion / 500000) * 500000 AS "Desde",
+                FLOOR(Poblacion / 500000) * 500000  + 500000 AS "Hasta",
+                Nombre, Poblacion,
+				FLOOR(Poblacion / 500000) AS "Tramo"
+FROM Ciudad
+GROUP BY `Desde` 
+ORDER BY `Desde`;
+
+SELECT 	
+				FLOOR(Poblacion / 500000) * 500000 AS "Desde",
+                FLOOR(Poblacion / 500000) * 500000  + 500000 AS "Hasta",
+                COUNT(*) AS "Numero de ciudades"
+FROM Ciudad
+GROUP BY `Desde`
+ORDER BY `Desde`;
+
+-- 37 Número de países en cada tramo de incremento o decremento del PNB (PNB-PNBAnt) en decenas de miles de millones de dólares (el PNB se mide en millones de dólares)
+SELECT 
+				FLOOR((PNB - PNBAnt) / 10000) * 10000 AS "Desde",
+                FLOOR((PNB - PNBAnt) / 10000) * 10000  + 10000 AS "Hasta",
+                COUNT(*) AS "Numero de paises"
+FROM Pais
+WHERE PNB - PNBAnt IS NOT NULL
+GROUP BY `Desde`
+ORDER BY `Desde`;
+
+-- 38. De cada continente y cada región queremos saber el número de países, el PNB más alto y la media de población con totales
+SELECT 
+				Continente, Region,
+                COUNT(*) AS "Numero de paises",
+                ROUND(MAX(PNB)) AS "PNB mas alto",
+                ROUND(AVG(Poblacion), 2) AS "Media de poblacion"
+FROM Pais
+WHERE PNB - PNBAnt IS NOT NULL
+GROUP BY Continente, Region WITH ROLLUP;
+
+-- 39. De cada pais del la región sur (Southern Europe) del continente europeo (Europe), queremos saber el número de lenguas que se hablan en este país y, de ellas, cuántas son oficiales y cuántas no. También queremos saber el número de lenguas habladas por más de un veinte por ciento de la población en ese país
+SELECT 	Nombre, Lengua, Porcentaje, EsOficial
+FROM 		LenguaPais JOIN Pais
+ON 			LenguaPais.CodigoPais = Pais.Codigo
+WHERE 	Continente = "Europe" AND Region = "Southern Europe";
+
+SELECT 	Nombre, Lengua, Porcentaje, EsOficial, 
+				IF(EsOficial = "T", 1 , NULL) AS OficialT,
+                IF(EsOficial = "F", 1 , NULL) AS OficialF,
+                IF(Porcentaje = 20, 1 , NULL) AS PorcentajeMayor20
+FROM 		LenguaPais JOIN Pais
+ON 			LenguaPais.CodigoPais = Pais.Codigo
+WHERE 	Continente = "Europe" AND Region = "Southern Europe";
+
+
+SELECT 		Nombre, COUNT(*) AS "Numero de lenguas",
+					COUNT(IF(EsOficial = "T", 1 , NULL)) AS "Son Oficiales", /* Truco para contar valores independientes*/
+					COUNT(IF(EsOficial = "F", 1 , NULL)) AS "No son Oficiales",
+					COUNT(IF(Porcentaje = 20, 1 , NULL)) AS "Numero de lenguas habladas por mas del 20"
+FROM 			LenguaPais JOIN Pais
+ON 				LenguaPais.CodigoPais = Pais.Codigo
+WHERE 		Continente = "Europe" AND Region = "Southern Europe"
+GROUP BY 	Codigo; /* Siempre agrupar por la clave primaria*/
+
+

@@ -744,4 +744,453 @@ ON 				LenguaPais.CodigoPais = Pais.Codigo
 WHERE 		Continente = "Europe" AND Region = "Southern Europe"
 GROUP BY 	Codigo; /* Siempre agrupar por la clave primaria*/
 
+-- ----------------------------------------------------------------------------
+-- Creando datos
+-- ----------------------------------------------------------------------------
+SELECT  "A" AS "Letra", 1 AS "Inicio", 9 AS "Fin"
+UNION ALL
+SELECT "B", 10, 19;
+
+
+-- Crear la siguiente tabla:
+/*
++------------------------+----------------+----------------+
+| NombreTramo            | LimiteInferior | LimiteSuperior |
++------------------------+----------------+----------------+
+| Muy Poco extendida     |              0 |              1 |
+| Poco extendida         |              2 |              3 |
+| Medianamente extendida |              4 |              5 |
+| Bastante extendida     |              6 |              7 |
+| Muy extendida          |              8 |          10000 |
++------------------------+----------------+----------------+
+*/
+
+
+SELECT  "Muy Poco extendida" AS NombreTramo, 0 AS LimiteInferior, 1 AS LimiteSuperior
+UNION ALL
+SELECT "Poco extendida", 2, 3
+UNION ALL
+SELECT "Medianamente extendida", 4, 5
+UNION ALL
+SELECT "Bastante extendida", 6, 7
+UNION ALL
+SELECT "Muy extendida", 8, 10000;
+
+SELECT NombreTramo, LimiteSuperior
+FROM (
+	SELECT  "Muy Poco extendida" AS NombreTramo, 0 AS LimiteInferior, 1 AS LimiteSuperior
+	UNION ALL
+	SELECT "Poco extendida", 2, 3
+	UNION ALL
+	SELECT "Medianamente extendida", 4, 5
+	UNION ALL
+	SELECT "Bastante extendida", 6, 7
+	UNION ALL
+	SELECT "Muy extendida", 8, 10000
+) T
+WHERE LimiteSuperior > 4;
+
+SELECT 	Lengua, COUNT(*)
+FROM 		LenguaPais
+WHERE 	EsOficial = "T";
+
+SELECT Lengua, NombreTramo AS "Extension como oficial" /*Bien formateado para el usuario*/
+FROM (
+	SELECT  	"Muy Poco extendida" AS NombreTramo, 0 AS LimiteInferior, 1 AS LimiteSuperior
+	UNION ALL
+	SELECT 	"Poco extendida", 2, 3
+	UNION ALL
+	SELECT 	"Medianamente extendida", 4, 5
+	UNION ALL
+	SELECT 	"Bastante extendida", 6, 7
+	UNION ALL
+	SELECT 	"Muy extendida", 8, 10000
+) Tramos
+JOIN (
+	SELECT 	Lengua, COUNT(*) NumeroPaises
+	FROM 		LenguaPais
+	WHERE 	EsOficial = "T"
+    GROUP BY	Lengua 
+) Datos
+ON  				Datos.NumeroPaises BETWEEN Tramos.LimiteInferior AND Tramos.LimiteSuperior; /*No se necesita Datos.x*/
+
+SELECT NombreTramo AS "Categorias", COUNT(*) AS "Numero de lenguas"
+FROM (
+	SELECT  	"Muy Poco extendida" AS NombreTramo, 0 AS LimiteInferior, 1 AS LimiteSuperior
+	UNION ALL
+	SELECT 	"Poco extendida", 2, 3
+	UNION ALL
+	SELECT 	"Medianamente extendida", 4, 5
+	UNION ALL
+	SELECT 	"Bastante extendida", 6, 7
+	UNION ALL
+	SELECT 	"Muy extendida", 8, 10000
+	UNION ALL
+	SELECT 	"Extremadamente extendida", 10000, 100000
+) Tramos
+JOIN (
+	SELECT 	Lengua, COUNT(*) NumeroPaises
+	FROM 		LenguaPais
+	WHERE 	EsOficial = "T"
+    GROUP BY	Lengua 
+) Datos
+ON  				NumeroPaises BETWEEN LimiteInferior AND LimiteSuperior
+GROUP BY	NombreTramo; 
+
+SELECT NombreTramo AS "Categorias", COUNT(Lengua) AS "Numero de lenguas" /*Porque te da un registro nulo y lo cuenta*/
+FROM (
+	SELECT  	"Muy Poco extendida" AS NombreTramo, 0 AS LimiteInferior, 1 AS LimiteSuperior
+	UNION ALL
+	SELECT 	"Poco extendida", 2, 3
+	UNION ALL
+	SELECT 	"Medianamente extendida", 4, 5
+	UNION ALL
+	SELECT 	"Bastante extendida", 6, 7
+	UNION ALL
+	SELECT 	"Muy extendida", 8, 10000
+	UNION ALL
+	SELECT 	"Extremadamente extendida", 10000, 100000
+) Tramos
+LEFT JOIN (
+	SELECT 	Lengua, COUNT(*) NumeroPaises
+	FROM 		LenguaPais
+	WHERE 	EsOficial = "T"
+    GROUP BY	Lengua 
+) Datos
+ON  				NumeroPaises BETWEEN LimiteInferior AND LimiteSuperior
+GROUP BY	LimiteInferior
+ORDER BY 	LimiteInferior;
+
+-- 40. Listado con las lenguas oficiales y su extensión (número de países en los que se habla como lengua oficial) según la siguiente tabla
+/*
++------------------------+----------------+----------------+
+| NombreTramo            | LimiteInferior | LimiteSuperior |
++------------------------+----------------+----------------+
+| Muy Poco extendida     |              0 |              1 |
+| Poco extendida         |              2 |              3 |
+| Medianamente extendida |              4 |              5 |
+| Bastante extendida     |              6 |              7 |
+| Muy extendida          |              8 |          10000 |
++------------------------+----------------+----------------+
+*/
+
+SELECT Lengua, NombreTramo AS "Extension como oficial"
+FROM (
+	SELECT  	"Muy Poco extendida" AS NombreTramo, 0 AS LimiteInferior, 1 AS LimiteSuperior
+	UNION ALL
+	SELECT 	"Poco extendida", 2, 3
+	UNION ALL
+	SELECT 	"Medianamente extendida", 4, 5
+	UNION ALL
+	SELECT 	"Bastante extendida", 6, 7
+	UNION ALL
+	SELECT 	"Muy extendida", 8, 10000
+) Tramos
+JOIN (
+	SELECT 	Lengua, COUNT(*) NumeroPaises
+	FROM 		LenguaPais
+	WHERE 	EsOficial = "T"
+    GROUP BY	Lengua 
+) Datos
+ON  				Datos.NumeroPaises BETWEEN Tramos.LimiteInferior AND Tramos.LimiteSuperior;
+
+-- 41. Según el número de países en los que se habla una lengua, queremos agruparlas según los tramos definidos en la siguiente tabla. Para ello sólo tendremos en cuenta las lenguas oficiales
+/*
++------------------------+----------------+----------------+
+| NombreTramo            | LimiteInferior | LimiteSuperior |
++------------------------+----------------+----------------+
+| Muy Poco extendida     |              0 |              1 |
+| Poco extendida         |              2 |              3 |
+| Medianamente extendida |              4 |              5 |
+| Bastante extendida     |              6 |              7 |
+| Muy extendida          |              8 |          10000 |
++------------------------+----------------+----------------+
+*/
+
+SELECT NombreTramo AS "Categorias", COUNT(Lengua) AS "Numero de lenguas" 
+FROM (
+	SELECT  	"Muy Poco extendida" AS NombreTramo, 0 AS LimiteInferior, 1 AS LimiteSuperior
+	UNION ALL
+	SELECT 	"Poco extendida", 2, 3
+	UNION ALL
+	SELECT 	"Medianamente extendida", 4, 5
+	UNION ALL
+	SELECT 	"Bastante extendida", 6, 7
+	UNION ALL
+	SELECT 	"Muy extendida", 8, 10000
+) Tramos
+JOIN (
+	SELECT 	Lengua, COUNT(*) NumeroPaises
+	FROM 		LenguaPais
+	WHERE 	EsOficial = "T"
+    GROUP BY	Lengua 
+) Datos
+ON  				NumeroPaises BETWEEN LimiteInferior AND LimiteSuperior
+GROUP BY	LimiteInferior
+ORDER BY 	LimiteInferior;
+
+-- 42. Definimos el índice de crecimiento de un país como PNB/PNBAnt. Según sea el índice de crecimiento: menor que 0,55; entre 0,55 y 0,85; entre 0,85 y 1,15; entre 1,15 y 1,45 y mayor que 1,45 se catalogará al país como en “gran recesión”, “recesión”, “estable”, “crecimiento” y “gran crecimiento”. Elabora una tabla donde aparezcan el número de países de cada tramo
+/*
++------------------+----------------+----------------+
+| NombreTramo      | LimiteInferior | LimiteSuperior |
++------------------+----------------+----------------+
+| Gran recesión    |          -1.00 |           0.55 |
+| Recesión         |           0.55 |           0.85 |
+| Estable          |           0.85 |           1.15 |
+| Crecimiento      |           1.15 |           1.45 |
+| Gran crecimiento |           1.45 |       10000.00 |
++------------------+----------------+----------------+
+*/
+
+-- Paso 1. Crear la tabla de tramos
+-- Paso 2. Crear la tabla de datos
+-- Paso 3. Poner un SELECT *, el LEFT JOIN y el ON
+-- En este paso hay que decidir si se pone BETWEEN o >=, <=
+-- Paso 4. Decidir qué tipo de consulta hay que hacer
+-- Si el del primer tipo, solo hay que cambiar el SELECT *
+-- Si es del segundo tipo:
+    -- En el SELECT mostrar el NombreTramo y hacer un COUNT de Datos.Codigo
+    -- Agrupar y ordenar por LimiteInferior
+
+SELECT "Gran recesion" NombreTramo,  -1 LimiteInferior, .55 LimiteSuperior
+UNION ALL
+SELECT "Recesion", .55,.85
+UNION ALL
+SELECT "Estable", .55,.85
+UNION ALL
+SELECT "Recesion", .85,1.15
+UNION ALL
+SELECT "Crecimiento", 1.15,1.45
+UNION ALL
+SELECT "Gran Crecimiento", 1.45, 10000;
+
+SELECT 	PNB /	PNBAnt AS IndiceCrecimiento
+FROM 		Pais
+WHERE 	PNB /	PNBAnt IS NOT NULL;
+
+SELECT NombreTramo AS "Categoria", COUNT(Codigo) AS "Numero de paises"
+FROM (
+	SELECT "Gran recesion" NombreTramo,  -1 LimiteInferior, .55 LimiteSuperior
+	UNION ALL
+	SELECT "Recesion", .55,.85
+	UNION ALL
+	SELECT "Estable", .55,.85
+	UNION ALL
+	SELECT "Recesion", .85,1.15
+	UNION ALL
+	SELECT "Crecimiento", 1.15,1.45
+	UNION ALL
+	SELECT "Gran Crecimiento", 1.45, 10000
+) Tramos
+LEFT JOIN (
+	SELECT 	Codigo, PNB /	PNBAnt AS IndiceCrecimiento
+	FROM 		Pais
+	WHERE 	PNB /	PNBAnt IS NOT NULL
+) Datos
+ON  IndiceCrecimiento >= LimiteInferior AND IndiceCrecimiento < LimiteSuperior
+GROUP BY LimiteInferior
+ORDER BY LimiteInferior;
+
+-- 43. Según el número de ciudades que tiene cada región de cada continente realizamos la siguiente clasificación: entre 0 y 10, entre 11 y 100, entre 101 y 200, entre 201 y 500, de 501 en adelante; que se corresponden con Muy bajo, Bajo, Medio, Alto y Muy alto respectivamente. Queremos saber cuántas regiones hay en cada tramo de número de ciudades.
+/*
++-------------+----------------+----------------+
+| NombreTramo | LimiteInferior | LimiteSuperior |
++-------------+----------------+----------------+
+| Muy bajo    |              0 |             10 |
+| Bajo        |             11 |            100 |
+| Medio       |            101 |            200 |
+| Alto        |            201 |            500 |
+| Muy alto    |            501 |       10000000 |
++-------------+----------------+----------------+
+*/
+
+-- Partimos de la consulta 31 que ya hemos hecho: De cada continente y cada región queremos saber el número de ciudades ordenado de las regiones con más ciudades a las que menos tienen.
+SELECT   Continente, Region, COUNT(Ciudad.Id) AS NumeroDeCiudades
+FROM     Pais LEFT JOIN Ciudad
+ON       Pais.Codigo = Ciudad.CodigoPais
+GROUP BY Continente, Region
+ORDER BY NumeroDeCiudades DESC;
+
+SELECT "Muy bajo" NombreTramo,  0 LimiteInferior, 10 LimiteSuperior
+UNION ALL
+SELECT "Bajo", 11, 100
+UNION ALL
+SELECT "Medio",  101, 200
+UNION ALL
+SELECT "Alto", 201,500
+UNION ALL
+SELECT "Muy alto", 501,10000000;
+
+SELECT NombreTramo AS "Numero de ciudades", COUNT(Region) AS "Numero de regiones"
+FROM (
+	SELECT "Muy bajo" NombreTramo,  0 LimiteInferior, 10 LimiteSuperior
+	UNION ALL
+	SELECT "Bajo", 11, 100
+	UNION ALL
+	SELECT "Medio",  101, 200
+	UNION ALL
+	SELECT "Alto", 201,500
+	UNION ALL
+	SELECT "Muy alto", 501,10000000
+) Tramos
+LEFT JOIN (
+	SELECT   Continente, Region, COUNT(Ciudad.Id) AS NumeroDeCiudades
+	FROM     Pais LEFT JOIN Ciudad
+	ON       Pais.Codigo = Ciudad.CodigoPais
+	GROUP BY Continente, Region
+	ORDER BY NumeroDeCiudades DESC
+) Datos
+ON  		NumeroDeCiudades BETWEEN LimiteInferior AND LimiteSuperior
+GROUP BY LimiteInferior
+ORDER BY LimiteInferior;
+
+-- 44. Según el número de países en los que se habla una lengua, queremos agruparlas según los tramos definidos en la siguiente tabla. Para ello sólo tendremos en cuenta las lenguas oficiales. Usa funciones de control de flujo
+/*
++------------------------+----------------+----------------+
+| NombreTramo            | LimiteInferior | LimiteSuperior |
++------------------------+----------------+----------------+
+| Muy Poco extendida     |              0 |              1 |
+| Poco extendida         |              2 |              3 |
+| Medianamente extendida |              4 |              5 |
+| Bastante extendida     |              6 |              7 |
+| Muy extendida          |              8 |          10000 |
++------------------------+----------------+----------------+
+*/
+
+-- Partimos de la subconsulta:
+SELECT Lengua, COUNT(*) AS NumeroPaises
+FROM   LenguaPais
+WHERE  EsOficial = 'T'
+GROUP BY Lengua;
+
+SELECT 	Lengua, 
+				NumeroPaises,
+				CASE 
+					WHEN  NumeroPaises >= 8 THEN "Muy extendida"
+					WHEN  NumeroPaises >= 6 THEN "Bastante extendida"
+                    WHEN  NumeroPaises >= 4 THEN "Medianamente extendida"
+					WHEN  NumeroPaises >= 2 THEN "Poco extendida"   
+					ELSE "Muy poco extendida"
+                END  AS "Categorias"
+FROM (
+	SELECT 	Lengua, COUNT(*) AS NumeroPaises
+	FROM   	LenguaPais
+	WHERE  	EsOficial = 'T'
+	GROUP BY Lengua
+) Datos;
+
+SELECT 	
+				CASE 
+					WHEN  NumeroPaises >= 8 THEN "Muy extendida"
+					WHEN  NumeroPaises >= 6 THEN "Bastante extendida"
+                    WHEN  NumeroPaises >= 4 THEN "Medianamente extendida"
+					WHEN  NumeroPaises >= 2 THEN "Poco extendida"   
+					ELSE "Muy poco extendida" /*Podria entrar nulos*/
+                END  AS "Categorias", 
+                COUNT(*) as "Numero de Lenguas"
+FROM (
+	SELECT 	Lengua, COUNT(*) AS NumeroPaises
+	FROM   	LenguaPais
+	WHERE  	EsOficial = 'T'
+	GROUP BY Lengua
+) Datos
+GROUP BY Categorias;
+
+
+-- ----------------------------------------------------------------------------
+-- Otras consultas
+-- ----------------------------------------------------------------------------
+
+-- 45.  Lenguas oficiales que se hablan en los países de las 10 capitales más pobladas del mundo
+-- Partimos de:
+SELECT Pais.Codigo, Pais.Nombre, Ciudad.Nombre, Ciudad.Poblacion
+FROM   Pais JOIN Ciudad
+ON     Pais.Capital = Ciudad.Id
+ORDER BY Ciudad.Poblacion DESC
+LIMIT 10;
+
+SELECT 	DISTINCT Lengua AS "Lenguas"
+FROM 		LenguaPais JOIN (
+	SELECT 	Pais.Codigo
+	FROM   	Pais JOIN Ciudad
+	ON     		Pais.Capital = Ciudad.Id
+	ORDER BY Ciudad.Poblacion DESC
+	LIMIT 10
+)  AS CapitalesMasPobladas
+ON  			LenguaPais.CodigoPais = CapitalesMasPobladas.Codigo
+WHERE 	LenguaPais.EsOficial = "T";
+
+-- 46. Queremos crear una gráfica en Calc para saber si existe alguna relación entre la esperanza de vida y el PNB per cápita de un país
+-- Primero hacemos la consulta
+SELECT Nombre AS 'País',
+       EsperanzaVida AS 'Esperanza de Vida',
+       (PNB/Poblacion)*1000000 AS 'PIB per cápita'
+FROM  Pais
+WHERE EsperanzaVida IS NOT NULL AND         -- Debe tener introducida una esperanza de vida.
+      PNB IS NOT NULL AND                   -- Debe tener introducido un PNB.
+      Poblacion > 0 AND                     -- No puede existir población negativa.
+      EsperanzaVida > 0 AND                 -- No puede existir esperanza de vida negativa.
+      PNB > 0;                              -- No puede existir un PNB negativo.
+      
+-- 47. Queremos saber el incremento del PNB (PNB-PNBAnt) de cada continente
+SELECT Continente, SUM(PNB - PNBAnt) AS 'Incremento PNB'
+FROM   Pais
+GROUP BY Continente; /*Correcta*/
+
+SELECT Continente, SUM(PNB) - SUM(PNBAnt) AS 'Incremento PNB'
+FROM   Pais
+GROUP BY Continente;
+
+-- Código PNB  PNBAnt PNB–PNBAnt
+-- ESP    10       5           5
+-- FRA    15      20          -5
+-- ITA     5    NULL        NULL
+-- -----------------------------
+--          30      25               	SUM(PNB) - SUM(PNBAnt)   = 5
+--                                	0		SUM(PNB – PNBAnt)  = 0 /* CORRECTA*/
+
+-- 48.  De cada continente queremos saber el número medio de lenguas habladas por país, es decir, el número de lenguas que se hablan en el continente partido por el número de países de ese continente
+SELECT Continente, ROUND(COUNT(DISTINCT Lengua)  /  COUNT(DISTINCT Codigo),  1) AS "Número medio de lenguas habladas por país"
+FROM Pais LEFT JOIN LenguaPais
+ON Pais.Codigo = LenguaPais.CodigoPais
+GROUP BY Continente;
+
+-- Solución usando consutlas correlacionadas. Bastante más compleja.
+SELECT DISTINCT PaisExt.Continente,
+      (
+      ROUND(
+            (            -- Número de lenguas que se hablan en un continente.
+            SELECT COUNT(DISTINCT LenguaPais.Lengua)
+            FROM LenguaPais JOIN Pais
+            ON LenguaPais.CodigoPais = Pais.Codigo
+            WHERE PaisExt.Continente =  Pais.Continente) 
+            /
+            (            -- Dividido entre el número de paises de ese continente.
+            SELECT COUNT(*)
+            FROM Pais
+            WHERE PaisExt.Continente = Pais.Continente)
+            , 1)
+      ) AS 'Lenguas por pais'
+FROM Pais AS PaisExt;
+
+-- 49. Listado de los países y el número de ciudades de ese país para los países que tienen más ciudades que España
+SELECT COUNT(*)
+FROM Ciudad JOIN Pais
+ON CodigoPais = Codigo
+WHERE Pais.Nombre = "Spain";
+
+SELECT Pais.Nombre, COUNT(*) AS "Numero de ciudades"
+FROM 	Ciudad JOIN Pais
+ON 			CodigoPais = Codigo
+GROUP BY Codigo
+HAVING `Numero de ciudades` > (
+	SELECT 	COUNT(*)
+	FROM 		Ciudad JOIN Pais
+	ON 				CodigoPais = Codigo
+	WHERE 		Pais.Nombre = "Spain"
+) ;
+
+-- -----------------------------------------------------------------------------
+-- Consultas de filas repetidas 
+-- -----------------------------------------------------------------------------
 

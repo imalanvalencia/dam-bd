@@ -26,14 +26,17 @@ Análisis de los nulos: realizaremos el mismo análisis de nulos hecho en clase.
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 1. Países que tienen exactamente dos ciudades
-SELECT 	Pais.Nombre
-FROM 		Ciudad LEFT JOIN Pais
-ON			Ciudad.CodigoPais = Pais.Codigo
-HAVING 	COUNT(Ciudad.Id) = 2;
+SELECT  Pais.Nombre
+FROM    Ciudad LEFT JOIN Pais
+ON	    Ciudad.CodigoPais = Pais.Codigo
+HAVING  COUNT(Ciudad.Id) = 2;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 2. Países que tienen tres o más lenguas oficiales
-
+SELECT  Pais.Nombre
+FROM    Lengua LEFT JOIN Pais
+ON      Lengua.CodigoPais = Pais.Codigo
+;
 -- --------------------------------------------------------------------------------------
 -- Consulta 3. Países que tienen más ciudades que el número de letras de su Nombre
 

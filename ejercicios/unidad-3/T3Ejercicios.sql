@@ -26,40 +26,98 @@ Análisis de los nulos: realizaremos el mismo análisis de nulos hecho en clase.
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 1. Países que tienen exactamente dos ciudades
-SELECT  Pais.Nombre
-FROM    Ciudad LEFT JOIN Pais
-ON	    Ciudad.CodigoPais = Pais.Codigo
-HAVING  COUNT(Ciudad.Id) = 2;
+SELECT  Pais.Nombre AS "Paises"
+FROM    Pais
+WHERE   (
+            SELECT  COUNT(*)
+            FROM    Ciudad
+            WHERE   Pais.Codigo = Ciudad.CodigoPais
+        ) = 2;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 2. Países que tienen tres o más lenguas oficiales
-SELECT  Pais.Nombre
-FROM    Lengua LEFT JOIN Pais
-ON      Lengua.CodigoPais = Pais.Codigo
-;
+SELECT  Pais.Nombre AS "Paises"
+FROM    Pais
+WHERE   (
+            SELECT  COUNT(*)
+            FROM    LenguaPais
+            WHERE   Pais.Codigo = LenguaPais.CodigoPais
+                    AND LenguaPais.EsOficial = "T"
+        ) >= 3 ;
 -- --------------------------------------------------------------------------------------
 -- Consulta 3. Países que tienen más ciudades que el número de letras de su Nombre
-
+SELECT  Pais.Nombre AS "Paises"
+FROM    Pais
+WHERE   CHAR_LENGTH(Pais.Nombre) > (
+            SELECT  COUNT(*)
+            FROM    Ciudad
+            WHERE   Pais.Codigo = Ciudad.CodigoPais
+        );
 -- --------------------------------------------------------------------------------------
 -- Consulta 4. Lenguas oficiales habladas en países con más de cien ciudades.
+SELECT  DISTINCT Lengua AS "Lenguas"
+FROM    LenguaPais JOIN Pais
+ON      LenguaPais.CodigoPais = Pais.Codigo
+WHERE   (
+            SELECT  COUNT(*)
+            FROM    Ciudad
+            WHERE   Pais.Codigo = Ciudad.CodigoPais
+        ) > 100;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 5. Nombre de los países que tienen por lo menos una lengua.
+SELECT  Pais.Nombre AS "Paises"
+FROM    Pais
+WHERE   EXISTS (
+            SELECT  *
+            FROM    LenguaPais
+            WHERE   Pais.Codigo = LenguaPais.CodigoPais
+        );
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 6. Nombre de los países que no tienen ninguna lengua.
+SELECT  Pais.Nombre AS "Paises"
+FROM    Pais
+WHERE   NOT EXISTS (
+            SELECT  *
+            FROM    LenguaPais
+            WHERE   Pais.Codigo = LenguaPais.CodigoPais
+        );
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 7. Países del continente africano que no tienen lengua oficial.
+SELECT  Pais.Nombre AS "Paises"
+FROM    Pais
+WHERE   NOT EXISTS (
+            SELECT  *
+            FROM    LenguaPais
+            WHERE   Pais.Codigo = LenguaPais.CodigoPais
+                    AND EsOficial = "T"
+        ) AND Continente = "Africa";
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 8. Nombre de cada continente junto con el número de países que tiene.
+SELECT  Continente AS "Continentes", COUNT(Nombre) AS "Numero de paises"
+FROM    Pais
+GROUP BY Continente;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 9. Número de países que se han independizado cada año (sólo para los años en los que se ha independizado algún país).
 
+
 -- --------------------------------------------------------------------------------------
 -- Consulta 10. De cada capital queremos saber el número de ciudades que pertenecen al país del que es capital.
+SELECT  Capitales.Nombre AS "Capitales",
+        COUNT(Ciudad.Nombre) AS "Numero de Ciudades"
+FROM    Ciudad Capitales JOIN Pais JOIN Ciudad
+ON      Capitales.Id = Pais.Capital
+        AND Ciudad.CodigoPais = Pais.Codigo
+GROUP BY Capitales.Id;
+
+SELECT  Ciudad.Nombre AS "Capital",
+        ( SELECT COUNT(*) FROM Ciudad WHERE Ciudad.CodigoPais = Pais.Codigo) AS "Numero de Ciudades"
+FROM    Ciudad JOIN Pais
+ON      Ciudad.Id = Pais.Capital;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 11. De cada lengua oficial queremos saber su número de hablantes (como lengua oficial).

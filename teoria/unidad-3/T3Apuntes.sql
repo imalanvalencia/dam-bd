@@ -900,19 +900,23 @@ WHERE  EsOficial = 'T'
 GROUP  BY Lengua;
 
 SELECT *
-FROM (SELECT 'Muy Poco extendida' AS 'NombreTramo', 0 AS 'LimiteInferior', 1 AS 'LimiteSuperior'
-      UNION ALL
-      SELECT 'Poco extendida', 2, 3
-      UNION ALL
-      SELECT 'Medianamente extendida', 4, 5
-      UNION ALL
-      SELECT 'Bastante extendida', 6, 7
-      UNION ALL
-      SELECT 'Muy extendida', 8, 10000) AS Tramos
-JOIN (SELECT Lengua, COUNT(*) AS NumeroPaises
-      FROM   LenguaPais
-      WHERE  EsOficial = 'T'
-      GROUP  BY Lengua) AS Datos
+FROM (
+       SELECT 'Muy Poco extendida' AS 'NombreTramo', 0 AS 'LimiteInferior', 1 AS 'LimiteSuperior'
+       UNION ALL
+       SELECT 'Poco extendida', 2, 3
+       UNION ALL
+       SELECT 'Medianamente extendida', 4, 5
+       UNION ALL
+       SELECT 'Bastante extendida', 6, 7
+       UNION ALL
+       SELECT 'Muy extendida', 8, 10000
+      ) AS Tramos
+JOIN (
+       SELECT Lengua, COUNT(*) AS NumeroPaises
+       FROM   LenguaPais
+       WHERE  EsOficial = 'T'
+       GROUP  BY Lengua
+      ) AS Datos
 ON Datos.NumeroPaises BETWEEN Tramos.LimiteInferior AND Tramos.LimiteSuperior;
 
 -- 1 consulta
@@ -1207,14 +1211,15 @@ ORDER BY Ciudad.Poblacion DESC
 LIMIT 10;
 
 SELECT DISTINCT Lengua AS 'Lenguas' 
-FROM LenguaPais JOIN (
-SELECT Pais.Codigo
-FROM   Pais JOIN Ciudad
-ON     Pais.Capital = Ciudad.Id
-ORDER BY Ciudad.Poblacion DESC
-LIMIT 10) AS CapitalesMasPobladas
-ON LenguaPais.CodigoPais = CapitalesMasPobladas.Codigo
-WHERE LenguaPais.EsOficial= 'T';
+FROM   LenguaPais JOIN (
+                            SELECT Pais.Codigo
+                            FROM   Pais JOIN Ciudad
+                            ON     Pais.Capital = Ciudad.Id
+                            ORDER BY Ciudad.Poblacion DESC
+                            LIMIT 10
+                       ) AS CapitalesMasPobladas
+ON     LenguaPais.CodigoPais = CapitalesMasPobladas.Codigo
+WHERE  LenguaPais.EsOficial= 'T';
 
 -- 46. Queremos crear una gráfica en Calc para saber si existe alguna relación entre la esperanza de vida y el PNB per cápita de un país
 -- Primero hacemos la consulta
@@ -1276,19 +1281,19 @@ FROM Pais AS PaisExt;
 
 -- 49. Listado de los países y el número de ciudades de ese país para los países que tienen más ciudades que España
 SELECT Pais.Nombre, COUNT(*) AS 'Número de ciudades'
-FROM Pais JOIN Ciudad
-ON Pais.Codigo = Ciudad.CodigoPais
+FROM   Pais JOIN Ciudad
+ON     Pais.Codigo = Ciudad.CodigoPais
 GROUP BY Codigo
 HAVING `Número de ciudades` > (
 SELECT COUNT(*)
-FROM Pais JOIN Ciudad
-ON Pais.Codigo = Ciudad.CodigoPais
-WHERE Pais.Nombre = 'Spain');
+FROM   Pais JOIN Ciudad
+ON     Pais.Codigo = Ciudad.CodigoPais
+WHERE  Pais.Nombre = 'Spain');
 
 SELECT COUNT(*)
-FROM Pais JOIN Ciudad
-ON Pais.Codigo = Ciudad.CodigoPais
-WHERE Pais.Nombre = 'Spain';
+FROM   Pais JOIN Ciudad
+ON     Pais.Codigo = Ciudad.CodigoPais
+WHERE  Pais.Nombre = 'Spain';
 
 -- -----------------------------------------------------------------------------
 -- Consultas de campos repetidas 
@@ -1364,8 +1369,8 @@ LIMIT 5; -- cada vez genera 5 paises aleatorias
 
 -- 55. Obtener cinco ciudades junto con su población y el país al que pertenecen de manera aleatoria
 SELECT Ciudad.Nombre AS 'Ciudad', Pais.Poblacion, Pais.Nombre AS 'Pais'
-FROM Pais JOIN Ciudad
-ON Pais.Codigo = Ciudad.CodigoPais
+FROM   Pais JOIN Ciudad
+ON     Pais.Codigo = Ciudad.CodigoPais
 ORDER BY RAND() 
 LIMIT 5;
 
@@ -1374,20 +1379,21 @@ LIMIT 5;
 SELECT ROUND(RAND() * 4078) + 1;
 
 SELECT *
-FROM Ciudad
-WHERE Id = (SELECT TRUNCATE(RAND() * 4079, 0) + 1);
+FROM   Ciudad
+WHERE  Id = (SELECT TRUNCATE(RAND() * 4079, 0) + 1);
 
 SELECT *, (SELECT TRUNCATE(RAND() * 4079, 0) + 1)
-FROM Ciudad;
+FROM   Ciudad;
 
 -- 56. Obtener todos los países de dos regiones aleatorias
 
 SELECT Nombre AS 'Pais', Pais.Region AS 'Region'
-FROM    Pais JOIN (
-        SELECT DISTINCT Region 
-        FROM Pais
-        ORDER BY RAND()
-        LIMIT 2) AS DosRegionesAleatorias
+FROM   Pais JOIN (
+                     SELECT DISTINCT Region 
+                     FROM Pais
+                     ORDER BY RAND()
+                     LIMIT 2
+                 ) AS DosRegionesAleatorias
 ON Pais.Region = DosRegionesAleatorias.Region
 ORDER BY Region;
 

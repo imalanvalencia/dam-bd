@@ -103,6 +103,11 @@ GROUP BY Continente;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 9. Número de países que se han independizado cada año (sólo para los años en los que se ha independizado algún país).
+SELECT  AnyIndep AS "Año de independencia", 
+        COUNT(*) AS "Numero de paises independizados"
+FROM    Pais
+WHERE   AnyIndep IS NOT NULL
+GROUP BY AnyIndep;
 
 
 -- --------------------------------------------------------------------------------------
@@ -114,19 +119,33 @@ ON      Capitales.Id = Pais.Capital
         AND Ciudad.CodigoPais = Pais.Codigo
 GROUP BY Capitales.Id;
 
-SELECT  Ciudad.Nombre AS "Capital",
+SELECT  Ciudad.Nombre AS "Capitales",
         ( SELECT COUNT(*) FROM Ciudad WHERE Ciudad.CodigoPais = Pais.Codigo) AS "Numero de Ciudades"
 FROM    Ciudad JOIN Pais
 ON      Ciudad.Id = Pais.Capital;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 11. De cada lengua oficial queremos saber su número de hablantes (como lengua oficial).
+SELECT  Lengua AS "Lenguas",
+        porcentaje AS "Numero de hablantes"
+FROM    LenguaPais JOIN Pais
+ON      LenguaPais.CodigoPais = Pais.Codigo
+WHERE   EsOficial = "T"
+GROUP BY Lengua;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 12. De cada continente, queremos saber el número de lenguas oficiales y no oficiales distintas que se hablan.
+SELECT  Continente, 
+        Count(IF(EsOficial = "T", 1, NULL)) AS "Numero de lenguas oficiales", 
+        Count(IF(EsOficial = "F", 1, NULL)) AS "Numero de lenguas oficiales"
+FROM    LenguaPais LEFT JOIN Pais
+ON      LenguaPais.CodigoPais = Pais.Codigo
+GROUP BY Continente;
+
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 13. Vamos a establecer tramos por decenas en el porcentaje de hablantes de una legua: del 0% al 10%; del 10% al 20% y así. De cada lengua y cada tramo, queremos saber el número de países en los que se habla y el número total de hablantes de esa lengua.
+
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 14. Queremos saber el número de ciudades que hay en cada tramo de la esperanza de vida organizada por decenas.

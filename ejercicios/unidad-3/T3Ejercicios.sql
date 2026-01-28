@@ -145,7 +145,9 @@ GROUP BY Continente;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 13. Vamos a establecer tramos por decenas en el porcentaje de hablantes de una legua: del 0% al 10%; del 10% al 20% y así. De cada lengua y cada tramo, queremos saber el número de países en los que se habla y el número total de hablantes de esa lengua.
-SELECT  Lengua AS "Lenguas",
+WITH TramosPorcentaje AS (
+    SELECT 
+        Lengua, Porcentaje,
         CASE 
             WHEN Porcentaje >= 0 AND Porcentaje < 10 THEN '0%-10%'
             WHEN Porcentaje >= 10 AND Porcentaje < 20 THEN '10%-20%'
@@ -157,45 +159,24 @@ SELECT  Lengua AS "Lenguas",
             WHEN Porcentaje >= 70 AND Porcentaje < 80 THEN '70%-80%'
             WHEN Porcentaje >= 80 AND Porcentaje < 90 THEN '80%-90%'
             WHEN Porcentaje >= 90 AND Porcentaje <= 100 THEN '90%-100%'
-        END AS "Tramo Porcentaje",
-        COUNT(*) AS "Numero de paises",
-        SUM(Porcentaje) AS "Total porcentaje"
-FROM    LenguaPais
-GROUP BY Lengua, 
-        CASE 
-            WHEN Porcentaje >= 0 AND Porcentaje < 10 THEN '0%-10%'
-            WHEN Porcentaje >= 10 AND Porcentaje < 20 THEN '10%-20%'
-            WHEN Porcentaje >= 20 AND Porcentaje < 30 THEN '20%-30%'
-            WHEN Porcentaje >= 30 AND Porcentaje < 40 THEN '30%-40%'
-            WHEN Porcentaje >= 40 AND Porcentaje < 50 THEN '40%-50%'
-            WHEN Porcentaje >= 50 AND Porcentaje < 60 THEN '50%-60%'
-            WHEN Porcentaje >= 60 AND Porcentaje < 70 THEN '60%-70%'
-            WHEN Porcentaje >= 70 AND Porcentaje < 80 THEN '70%-80%'
-            WHEN Porcentaje >= 80 AND Porcentaje < 90 THEN '80%-90%'
-            WHEN Porcentaje >= 90 AND Porcentaje <= 100 THEN '90%-100%'
-        END
-ORDER BY Lengua, "Tramo Porcentaje";
+        END AS tramo_porcentaje
+    FROM LenguaPais
+)
+SELECT 
+    Lengua AS "Lenguas",
+    tramo_porcentaje AS "Tramo Porcentaje",
+    COUNT(*) AS "Numero de paises",
+    SUM(Porcentaje) AS "Total porcentaje"
+FROM TramosPorcentaje
+GROUP BY 1, 2
+ORDER BY 1, 2;
 
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 14. Queremos saber el número de ciudades que hay en cada tramo de la esperanza de vida organizada por decenas.
-SELECT  CASE 
-            WHEN Pais.EsperanzaVida >= 0 AND Pais.EsperanzaVida < 10 THEN '0-9'
-            WHEN Pais.EsperanzaVida >= 10 AND Pais.EsperanzaVida < 20 THEN '10-19'
-            WHEN Pais.EsperanzaVida >= 20 AND Pais.EsperanzaVida < 30 THEN '20-29'
-            WHEN Pais.EsperanzaVida >= 30 AND Pais.EsperanzaVida < 40 THEN '30-39'
-            WHEN Pais.EsperanzaVida >= 40 AND Pais.EsperanzaVida < 50 THEN '40-49'
-            WHEN Pais.EsperanzaVida >= 50 AND Pais.EsperanzaVida < 60 THEN '50-59'
-            WHEN Pais.EsperanzaVida >= 60 AND Pais.EsperanzaVida < 70 THEN '60-69'
-            WHEN Pais.EsperanzaVida >= 70 AND Pais.EsperanzaVida < 80 THEN '70-79'
-            WHEN Pais.EsperanzaVida >= 80 AND Pais.EsperanzaVida < 90 THEN '80-89'
-            WHEN Pais.EsperanzaVida >= 90 AND Pais.EsperanzaVida <= 100 THEN '90-100'
-        END AS "Tramo Esperanza Vida",
-        COUNT(Ciudad.Id) AS "Numero de ciudades"
-FROM    Pais LEFT JOIN Ciudad
-ON      Pais.Codigo = Ciudad.CodigoPais
-WHERE   Pais.EsperanzaVida IS NOT NULL
-GROUP BY 
+WITH TramosEsperanzaVida AS (
+    SELECT 
+        Ciudad.Id,
         CASE 
             WHEN Pais.EsperanzaVida >= 0 AND Pais.EsperanzaVida < 10 THEN '0-9'
             WHEN Pais.EsperanzaVida >= 10 AND Pais.EsperanzaVida < 20 THEN '10-19'
@@ -207,16 +188,25 @@ GROUP BY
             WHEN Pais.EsperanzaVida >= 70 AND Pais.EsperanzaVida < 80 THEN '70-79'
             WHEN Pais.EsperanzaVida >= 80 AND Pais.EsperanzaVida < 90 THEN '80-89'
             WHEN Pais.EsperanzaVida >= 90 AND Pais.EsperanzaVida <= 100 THEN '90-100'
-        END
-ORDER BY "Tramo Esperanza Vida";
+        END AS tramo_esperanza_vida
+    FROM Pais LEFT JOIN Ciudad
+    ON Pais.Codigo = Ciudad.CodigoPais
+    WHERE Pais.EsperanzaVida IS NOT NULL
+)
+SELECT 
+    tramo_esperanza_vida AS "Tramo Esperanza Vida",
+    COUNT(Id) AS "Numero de ciudades"
+FROM TramosEsperanzaVida
+GROUP BY 1
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 15. Número de países que comienzan por la A, por la B y así.
 SELECT  UPPER(LEFT(Nombre, 1)) AS "Inicial",
         COUNT(*) AS "Numero de paises"
 FROM    Pais
-GROUP BY UPPER(LEFT(Nombre, 1))
-ORDER BY "Inicial";
+GROUP BY 1
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 16. De cada continente y cada región, queremos saber el número de países que lo componen y el número de países que no tienen año de independencia, con totales.
@@ -225,7 +215,7 @@ SELECT  Continente,
         COUNT(*) AS "Total paises",
         COUNT(IF(AnyIndep IS NULL, 1, NULL)) AS "Paises sin independencia"
 FROM    Pais
-GROUP BY Continente, Region WITH ROLLUP;
+GROUP BY 1, 2 WITH ROLLUP;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 17. Queremos saber el número de ciudades que hay en cada tramo de la esperanza de vida usando los siguientes tramos.
@@ -239,26 +229,26 @@ GROUP BY Continente, Region WITH ROLLUP;
 -- | Muy alta    |             86 |            150 |
 -- +-------------+----------------+----------------+
 -- Cuidado que la esperanza de vida es un número con decimales
-SELECT  CASE 
-            WHEN Pais.EsperanzaVida >= 0 AND Pais.EsperanzaVida <= 40 THEN 'Muy baja'
-            WHEN Pais.EsperanzaVida >= 41 AND Pais.EsperanzaVida <= 55 THEN 'Baja'
-            WHEN Pais.EsperanzaVida >= 56 AND Pais.EsperanzaVida <= 75 THEN 'Media'
-            WHEN Pais.EsperanzaVida >= 76 AND Pais.EsperanzaVida <= 85 THEN 'Alta'
-            WHEN Pais.EsperanzaVida >= 86 AND Pais.EsperanzaVida <= 150 THEN 'Muy alta'
-        END AS "NombreTramo",
-        COUNT(Ciudad.Id) AS "Numero de ciudades"
-FROM    Pais LEFT JOIN Ciudad
-ON      Pais.Codigo = Ciudad.CodigoPais
-WHERE   Pais.EsperanzaVida IS NOT NULL
-GROUP BY 
+WITH TramosEsperanzaVida2 AS (
+    SELECT 
+        Ciudad.Id,
         CASE 
             WHEN Pais.EsperanzaVida >= 0 AND Pais.EsperanzaVida <= 40 THEN 'Muy baja'
             WHEN Pais.EsperanzaVida >= 41 AND Pais.EsperanzaVida <= 55 THEN 'Baja'
             WHEN Pais.EsperanzaVida >= 56 AND Pais.EsperanzaVida <= 75 THEN 'Media'
             WHEN Pais.EsperanzaVida >= 76 AND Pais.EsperanzaVida <= 85 THEN 'Alta'
             WHEN Pais.EsperanzaVida >= 86 AND Pais.EsperanzaVida <= 150 THEN 'Muy alta'
-        END
-ORDER BY "NombreTramo";
+        END AS nombre_tramo
+    FROM Pais LEFT JOIN Ciudad
+    ON Pais.Codigo = Ciudad.CodigoPais
+    WHERE Pais.EsperanzaVida IS NOT NULL
+)
+SELECT 
+    nombre_tramo AS "NombreTramo",
+    COUNT(Id) AS "Numero de ciudades"
+FROM TramosEsperanzaVida2
+GROUP BY 1
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 18. Queremos saber si una lengua se habla en muchos o pocos países de acuerdo con la siguiente tabla. Para ello sólo tendremos en cuenta las lenguas oficiales.
@@ -271,45 +261,44 @@ ORDER BY "NombreTramo";
 -- | Bastante extendida     |              6 |              7 |
 -- | Muy extendida          |              8 |          10000 |
 -- +------------------------+----------------+----------------+
-SELECT  Lengua AS "Lengua",
-        COUNT(*) AS "Numero de paises",
+SELECT 
+    Lengua AS "Lengua",
+    COUNT(*) AS "Numero de paises",
+    CASE 
+        WHEN COUNT(*) >= 0 AND COUNT(*) <= 1 THEN 'Muy Poco extendida'
+        WHEN COUNT(*) >= 2 AND COUNT(*) <= 3 THEN 'Poco extendida'
+        WHEN COUNT(*) >= 4 AND COUNT(*) <= 5 THEN 'Medianamente extendida'
+        WHEN COUNT(*) >= 6 AND COUNT(*) <= 7 THEN 'Bastante extendida'
+        WHEN COUNT(*) >= 8 AND COUNT(*) <= 10000 THEN 'Muy extendida'
+    END AS "NombreTramo"
+FROM LenguaPais
+WHERE EsOficial = "T"
+GROUP BY 1
+ORDER BY 2 DESC;
+
+-- --------------------------------------------------------------------------------------
+-- Consulta 19. De acuerdo con la tabla anterior queremos saber cómo de extendidas están las lenguas oficiales. Para ello crearemos una tabla en la que aparecerán los tramos en la primera columna y el número de lenguas que se hablan según los límites de ese tramo. Por ejemplo aparecerá: Muy poco extendida y en la siguiente columna el número de lenguas que se hablan de manera oficial en cero o un país.
+WITH LenguasOficiales AS (
+    SELECT 
+        Lengua, 
+        COUNT(*) AS num_paises,
         CASE 
             WHEN COUNT(*) >= 0 AND COUNT(*) <= 1 THEN 'Muy Poco extendida'
             WHEN COUNT(*) >= 2 AND COUNT(*) <= 3 THEN 'Poco extendida'
             WHEN COUNT(*) >= 4 AND COUNT(*) <= 5 THEN 'Medianamente extendida'
             WHEN COUNT(*) >= 6 AND COUNT(*) <= 7 THEN 'Bastante extendida'
             WHEN COUNT(*) >= 8 AND COUNT(*) <= 10000 THEN 'Muy extendida'
-        END AS "NombreTramo"
-FROM    LenguaPais
-WHERE   EsOficial = "T"
-GROUP BY Lengua
-ORDER BY "Numero de paises" DESC;
-
--- --------------------------------------------------------------------------------------
--- Consulta 19. De acuerdo con la tabla anterior queremos saber cómo de extendidas están las lenguas oficiales. Para ello crearemos una tabla en la que aparecerán los tramos en la primera columna y el número de lenguas que se hablan según los límites de ese tramo. Por ejemplo aparecerá: Muy poco extendida y en la siguiente columna el número de lenguas que se hablan de manera oficial en cero o un país.
-SELECT  CASE 
-            WHEN num_paises >= 0 AND num_paises <= 1 THEN 'Muy Poco extendida'
-            WHEN num_paises >= 2 AND num_paises <= 3 THEN 'Poco extendida'
-            WHEN num_paises >= 4 AND num_paises <= 5 THEN 'Medianamente extendida'
-            WHEN num_paises >= 6 AND num_paises <= 7 THEN 'Bastante extendida'
-            WHEN num_paises >= 8 AND num_paises <= 10000 THEN 'Muy extendida'
-        END AS "NombreTramo",
-        COUNT(*) AS "Numero de lenguas"
-FROM    (
-            SELECT  Lengua, COUNT(*) AS num_paises
-            FROM    LenguaPais
-            WHERE   EsOficial = "T"
-            GROUP BY Lengua
-        ) AS Subconsulta
-GROUP BY 
-        CASE 
-            WHEN num_paises >= 0 AND num_paises <= 1 THEN 'Muy Poco extendida'
-            WHEN num_paises >= 2 AND num_paises <= 3 THEN 'Poco extendida'
-            WHEN num_paises >= 4 AND num_paises <= 5 THEN 'Medianamente extendida'
-            WHEN num_paises >= 6 AND num_paises <= 7 THEN 'Bastante extendida'
-            WHEN num_paises >= 8 AND num_paises <= 10000 THEN 'Muy extendida'
-        END
-ORDER BY "NombreTramo";
+        END AS nombre_tramo
+    FROM LenguaPais
+    WHERE EsOficial = "T"
+    GROUP BY 1
+)
+SELECT 
+    nombre_tramo AS "NombreTramo",
+    COUNT(*) AS "Numero de lenguas"
+FROM LenguasOficiales
+GROUP BY 1
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 20. De acuerdo con la siguiente tabla indica el número de países que están en cada tramo de riqueza.
@@ -322,25 +311,24 @@ ORDER BY "NombreTramo";
 -- | Rico        |          10001 |          50000 |
 -- | Muy Rico    |          50001 |      100000000 |
 -- +-------------+----------------+----------------+
-SELECT  CASE 
-            WHEN PNB >= 0 AND PNB <= 1000 THEN 'Muy Pobre'
-            WHEN PNB >= 1001 AND PNB <= 5000 THEN 'Pobre'
-            WHEN PNB >= 5001 AND PNB <= 10000 THEN 'Normal'
-            WHEN PNB >= 10001 AND PNB <= 50000 THEN 'Rico'
-            WHEN PNB >= 50001 AND PNB <= 100000000 THEN 'Muy Rico'
-        END AS "NombreTramo",
-        COUNT(*) AS "Numero de paises"
-FROM    Pais
-WHERE   PNB IS NOT NULL
-GROUP BY 
+WITH TramosPNB AS (
+    SELECT 
         CASE 
             WHEN PNB >= 0 AND PNB <= 1000 THEN 'Muy Pobre'
             WHEN PNB >= 1001 AND PNB <= 5000 THEN 'Pobre'
             WHEN PNB >= 5001 AND PNB <= 10000 THEN 'Normal'
             WHEN PNB >= 10001 AND PNB <= 50000 THEN 'Rico'
             WHEN PNB >= 50001 AND PNB <= 100000000 THEN 'Muy Rico'
-        END
-ORDER BY "NombreTramo";
+        END AS nombre_tramo
+    FROM Pais
+    WHERE PNB IS NOT NULL
+)
+SELECT 
+    nombre_tramo AS "NombreTramo",
+    COUNT(*) AS "Numero de paises"
+FROM TramosPNB
+GROUP BY 1
+ORDER BY 1;
 
 
 -- --------------------------------------------------------------------------------------
@@ -354,79 +342,84 @@ ORDER BY "NombreTramo";
 -- | Rico        |          50000 |         500000 |
 -- | Muy Rico    |         500000 |       10000000 |
 -- +-------------+----------------+----------------+
-SELECT  CASE 
-            WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 0 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 100 THEN 'Muy Pobre'
-            WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 100 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 1000 THEN 'Pobre'
-            WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 1000 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 50000 THEN 'Normal'
-            WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 50000 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 500000 THEN 'Rico'
-            WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 500000 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion <= 10000000 THEN 'Muy Rico'
-        END AS "NombreTramo",
-        COUNT(Ciudad.Id) AS "Numero de ciudades"
-FROM    Ciudad 
-        JOIN Pais ON Ciudad.CodigoPais = Pais.Codigo
-        JOIN (
-            SELECT  CodigoPais, COUNT(*) AS num_ciudades
-            FROM    Ciudad
-            GROUP BY CodigoPais
-        ) AS NumCiudades ON Ciudad.CodigoPais = NumCiudades.CodigoPais
-WHERE   Pais.PNB IS NOT NULL 
-        AND Ciudad.Poblacion > 0
-GROUP BY 
+WITH PNBPorCiudad AS (
+    SELECT 
+        Ciudad.Id,
+        (Pais.PNB / num_ciudades) / Ciudad.Poblacion AS pnb_per_capita_ciudad,
         CASE 
             WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 0 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 100 THEN 'Muy Pobre'
             WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 100 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 1000 THEN 'Pobre'
             WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 1000 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 50000 THEN 'Normal'
             WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 50000 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion < 500000 THEN 'Rico'
             WHEN (Pais.PNB / num_ciudades) / Ciudad.Poblacion >= 500000 AND (Pais.PNB / num_ciudades) / Ciudad.Poblacion <= 10000000 THEN 'Muy Rico'
-        END
-ORDER BY "NombreTramo";
+        END AS nombre_tramo
+    FROM Ciudad 
+    JOIN Pais ON Ciudad.CodigoPais = Pais.Codigo
+    JOIN (
+        SELECT CodigoPais, COUNT(*) AS num_ciudades
+        FROM Ciudad
+        GROUP BY CodigoPais
+    ) AS NumCiudades ON Ciudad.CodigoPais = NumCiudades.CodigoPais
+    WHERE Pais.PNB IS NOT NULL 
+    AND Ciudad.Poblacion > 0
+)
+SELECT 
+    nombre_tramo AS "NombreTramo",
+    COUNT(Id) AS "Numero de ciudades"
+FROM PNBPorCiudad
+GROUP BY 1
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 22. De cada continente queremos saber el número total de habitantes partido el número de lenguas que se hablan.
-SELECT  Continente,
-        SUM(Poblacion) AS "Total habitantes",
-        COUNT(DISTINCT Lengua) AS "Numero de lenguas",
-        SUM(Poblacion) / COUNT(DISTINCT Lengua) AS "Habitantes por lengua"
-FROM    Pais 
-        LEFT JOIN LenguaPais ON Pais.Codigo = LenguaPais.CodigoPais
-GROUP BY Continente
-ORDER BY Continente;
+SELECT 
+    Continente,
+    SUM(Poblacion) AS "Total habitantes",
+    COUNT(DISTINCT Lengua) AS "Numero de lenguas",
+    SUM(Poblacion) / COUNT(DISTINCT Lengua) AS "Habitantes por lengua"
+FROM Pais 
+LEFT JOIN LenguaPais ON Pais.Codigo = LenguaPais.CodigoPais
+GROUP BY 1
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 23. Listado del los países y el número de ciudades de ese país para los países que tienen más ciudades que España.
-SELECT  Pais.Nombre AS "Paises",
-        COUNT(Ciudad.Id) AS "Numero de ciudades"
-FROM    Pais JOIN Ciudad
-ON      Pais.Codigo = Ciudad.CodigoPais
+SELECT 
+    Pais.Nombre AS "Paises",
+    COUNT(Ciudad.Id) AS "Numero de ciudades"
+FROM Pais JOIN Ciudad
+ON Pais.Codigo = Ciudad.CodigoPais
 GROUP BY Pais.Codigo, Pais.Nombre
 HAVING COUNT(Ciudad.Id) > (
             SELECT COUNT(*)
             FROM Ciudad
             WHERE CodigoPais = 'ESP'
         )
-ORDER BY "Numero de ciudades" DESC;
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 24. Listado de países y el número de lenguas de ese país para los países que tienen más lenguas que España con código de país "ESP".
-SELECT  Pais.Nombre AS "Paises",
-        COUNT(LenguaPais.Lengua) AS "Numero de lenguas"
-FROM    Pais LEFT JOIN LenguaPais
-ON      Pais.Codigo = LenguaPais.CodigoPais
+SELECT 
+    Pais.Nombre AS "Paises",
+    COUNT(LenguaPais.Lengua) AS "Numero de lenguas"
+FROM Pais LEFT JOIN LenguaPais
+ON Pais.Codigo = LenguaPais.CodigoPais
 GROUP BY Pais.Codigo, Pais.Nombre
 HAVING COUNT(LenguaPais.Lengua) > (
             SELECT COUNT(*)
             FROM LenguaPais
             WHERE CodigoPais = 'ESP'
         )
-ORDER BY "Numero de lenguas" DESC;
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 25. Capitales de países que tienen más lenguas oficiales que Canadá con código de país "CAN" y las mismas o menos que Suiza con código de país "CHE".
-SELECT  Ciudad.Nombre AS "Capitales",
-        Pais.Nombre AS "Paises"
-FROM    Ciudad JOIN Pais
-ON      Ciudad.Id = Pais.Capital
-WHERE   (
+SELECT 
+    Ciudad.Nombre AS "Capitales",
+    Pais.Nombre AS "Paises"
+FROM Ciudad JOIN Pais
+ON Ciudad.Id = Pais.Capital
+WHERE (
             SELECT COUNT(*)
             FROM LenguaPais
             WHERE CodigoPais = Pais.Codigo AND EsOficial = "T"
@@ -444,61 +437,67 @@ WHERE   (
             FROM LenguaPais
             WHERE CodigoPais = 'CHE' AND EsOficial = "T"
         )
-ORDER BY Ciudad.Nombre;
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 26. Obtener un listado de nombre de capitales que son capital de más de un país (que dos países tengan la misma capital no tiene porqué ser un error, pueden ser capitales diferentes con el mismo nombre).
-SELECT  Ciudad.Nombre AS "Nombre capital"
-FROM    Ciudad JOIN Pais
-ON      Ciudad.Id = Pais.Capital
-GROUP BY Ciudad.Nombre
+SELECT 
+    Ciudad.Nombre AS "Nombre capital"
+FROM Ciudad JOIN Pais
+ON Ciudad.Id = Pais.Capital
+GROUP BY 1
 HAVING COUNT(*) > 1; 
 
 -- -------------------------------------------------------------------------------------- 
 -- Consulta 27. Obtener un listado de nombre de países repetidos. Consideramos que el nombre de un país está repetido si tenemos al mismo país con el mismo nombre más de una vez dentro del mismo continente.
-SELECT  Nombre AS "Nombre pais repetido",
-        Continente AS "Continente"
-FROM    Pais
-GROUP BY Nombre, Continente
+SELECT 
+    Nombre AS "Nombre pais repetido",
+    Continente AS "Continente"
+FROM Pais
+GROUP BY 1, 2
 HAVING COUNT(*) > 1; 
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 28. Obtener un listado de nombre de países repetidos. Consideramos que el nombre de un país está repetido si aparece más de una vez en nuestra BD.
-SELECT  Nombre AS "Nombre pais repetido"
-FROM    Pais
-GROUP BY Nombre
+SELECT 
+    Nombre AS "Nombre pais repetido"
+FROM Pais
+GROUP BY 1
 HAVING COUNT(*) > 1; 
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 29. Realiza la consulta adecuada para saber si existe algún Codigo2 repetido
-SELECT  Codigo2 AS "Codigo2 repetido"
-FROM    Pais
-GROUP BY Codigo2
+SELECT 
+    Codigo2 AS "Codigo2 repetido"
+FROM Pais
+GROUP BY 1
 HAVING COUNT(*) > 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 30. Queremos cinco países aleatorios. De cada país saca su nombre, su población en millones de habitantes con un decimal y su esperanza de vida (sin decimales).
-SELECT  Nombre AS "Pais",
-        ROUND(Poblacion / 1000000, 1) AS "Poblacion millones",
-        ROUND(EsperanzaVida, 0) AS "Esperanza de vida"
-FROM    Pais
+SELECT 
+    Nombre AS "Pais",
+    ROUND(Poblacion / 1000000, 1) AS "Poblacion millones",
+    ROUND(EsperanzaVida, 0) AS "Esperanza de vida"
+FROM Pais
 ORDER BY RAND()
 LIMIT 5; 
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 31. Queremos cuatro países aleatorios junto con las lenguas que se hablan en esos países (dependiendo de las lenguas habladas en cada país la consulta tendrá más o menos registros. Por ejemplo, si en cada país se habla dos lenguas, la consulta tendrá ocho registros)
-SELECT  Pais.Nombre AS "Pais",
-        LenguaPais.Lengua AS "Lengua",
-        LenguaPais.EsOficial AS "Es Oficial"
-FROM    Pais LEFT JOIN LenguaPais
-ON      Pais.Codigo = LenguaPais.CodigoPais
-WHERE   Pais.Codigo IN (
+SELECT 
+    Pais.Nombre AS "Pais",
+    LenguaPais.Lengua AS "Lengua",
+    LenguaPais.EsOficial AS "Es Oficial"
+FROM Pais LEFT JOIN LenguaPais
+ON Pais.Codigo = LenguaPais.CodigoPais
+WHERE Pais.Codigo IN (
             SELECT Codigo
             FROM Pais
             ORDER BY RAND()
             LIMIT 4
         )
-ORDER BY Pais.Nombre, LenguaPais.Lengua; 
+ORDER BY 1, 2; 
 
 -- ----------------------------------------------------------------------------------------------
 -- Consultas sobre Neptuno
@@ -508,9 +507,10 @@ ORDER BY Pais.Nombre, LenguaPais.Lengua;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 32. Proveedores que proveen exáctamente tres productos
-SELECT  NombreEmpresa AS "Proveedores"
-FROM    Proveedores
-WHERE   (
+SELECT 
+    NombreEmpresa AS "Proveedores"
+FROM Proveedores
+WHERE (
             SELECT COUNT(DISTINCT IdProducto)
             FROM Productos
             WHERE IdProveedor = Proveedores.IdProveedor
@@ -518,9 +518,10 @@ WHERE   (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 33. Pedidos que piden exáctamente 6 productos
-SELECT  IdPedido AS "Pedidos"
-FROM    Pedidos
-WHERE   (
+SELECT 
+    IdPedido AS "Pedidos"
+FROM Pedidos
+WHERE (
             SELECT COUNT(DISTINCT IdProducto)
             FROM DetallesPedido
             WHERE IdPedido = Pedidos.IdPedido
@@ -528,10 +529,11 @@ WHERE   (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 34. Clientes que han realizado los pedidos que tienen exáctamente 6 productos
-SELECT  DISTINCT NombreEmpresa AS "Clientes"
-FROM    Clientes JOIN Pedidos
-ON      Clientes.IdCliente = Pedidos.IdCliente
-WHERE   (
+SELECT DISTINCT 
+    NombreEmpresa AS "Clientes"
+FROM Clientes JOIN Pedidos
+ON Clientes.IdCliente = Pedidos.IdCliente
+WHERE (
             SELECT COUNT(DISTINCT IdProducto)
             FROM DetallesPedido
             WHERE IdPedido = Pedidos.IdPedido
@@ -539,9 +541,10 @@ WHERE   (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 35. Categorías con más de 10 productos
-SELECT  NombreCategoria AS "Categorias"
-FROM    Categorias
-WHERE   (
+SELECT 
+    NombreCategoria AS "Categorias"
+FROM Categorias
+WHERE (
             SELECT COUNT(*)
             FROM Productos
             WHERE IdCategoria = Categorias.IdCategoria
@@ -549,9 +552,10 @@ WHERE   (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 36. Productos de los que se han vendido más de 1000 unidades
-SELECT  NombreProducto AS "Productos"
-FROM    Productos
-WHERE   (
+SELECT 
+    NombreProducto AS "Productos"
+FROM Productos
+WHERE (
             SELECT SUM(Cantidad)
             FROM DetallesPedido
             WHERE IdProducto = Productos.IdProducto
@@ -559,20 +563,22 @@ WHERE   (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 37. Clientes que han pedido más de 50 unidades de 'queso cabrales'
-SELECT  DISTINCT Clientes.NombreEmpresa AS "Clientes"
-FROM    Clientes 
-        JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
-        JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
-        JOIN Productos ON DetallesPedido.IdProducto = Productos.IdProducto
-WHERE   Productos.NombreProducto = 'Queso cabrales'
-GROUP BY Clientes.IdCliente, Clientes.NombreEmpresa
+SELECT DISTINCT 
+    Clientes.NombreEmpresa AS "Clientes"
+FROM Clientes 
+JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
+JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
+JOIN Productos ON DetallesPedido.IdProducto = Productos.IdProducto
+WHERE Productos.NombreProducto = 'Queso cabrales'
+GROUP BY 1, 2
 HAVING SUM(DetallesPedido.Cantidad) > 50;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 38. Productos que han sido comprados por más de 30 clientes
-SELECT  NombreProducto AS "Productos"
-FROM    Productos
-WHERE   (
+SELECT 
+    NombreProducto AS "Productos"
+FROM Productos
+WHERE (
             SELECT COUNT(DISTINCT Pedidos.IdCliente)
             FROM DetallesPedido 
             JOIN Pedidos ON DetallesPedido.IdPedido = Pedidos.IdPedido
@@ -582,107 +588,118 @@ WHERE   (
 -- --------------------------------------------------------------------------------------   
 -- Consulta 39. Listado del cliente, fecha y coste de los pedidos (incluyendo los costes de envío), ordenados por cliente y fecha.
 -- Puedes usar: DATE_FORMAT(FechaPedido, '%d-%m-%Y') AS 'Fecha de pedido'
-SELECT  Clientes.NombreEmpresa AS "Cliente",
-        DATE_FORMAT(Pedidos.FechaPedido, '%d-%m-%Y') AS 'Fecha de pedido',
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + Pedidos.CargoEnvio AS "Coste total"
-FROM    Clientes 
-        JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
-        JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
-GROUP BY Clientes.NombreEmpresa, Pedidos.FechaPedido, Pedidos.CargoEnvio
-ORDER BY Clientes.NombreEmpresa, Pedidos.FechaPedido;
+SELECT 
+    Clientes.NombreEmpresa AS "Cliente",
+    DATE_FORMAT(Pedidos.FechaPedido, '%d-%m-%Y') AS 'Fecha de pedido',
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + Pedidos.CargoEnvio AS "Coste total"
+FROM Clientes 
+JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
+JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
+GROUP BY 1, 2, 3
+ORDER BY 1, 2;
 
 -- --------------------------------------------------------------------------------------       
 -- Consulta 40. Cantidad facturada por cada cliente
-SELECT  Clientes.NombreEmpresa AS "Cliente",
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) AS "Cantidad facturada"
-FROM    Clientes 
-        JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
-        JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
-GROUP BY Clientes.IdCliente, Clientes.NombreEmpresa
-ORDER BY "Cantidad facturada" DESC;
+SELECT 
+    Clientes.NombreEmpresa AS "Cliente",
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) AS "Cantidad facturada"
+FROM Clientes 
+JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
+JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 41. Cantidad facturada con cada producto
-SELECT  Productos.NombreProducto AS "Producto",
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Cantidad facturada"
-FROM    Productos JOIN DetallesPedido
-ON      Productos.IdProducto = DetallesPedido.IdProducto
-GROUP BY Productos.IdProducto, Productos.NombreProducto
-ORDER BY "Cantidad facturada" DESC;
+SELECT 
+    Productos.NombreProducto AS "Producto",
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Cantidad facturada"
+FROM Productos JOIN DetallesPedido
+ON Productos.IdProducto = DetallesPedido.IdProducto
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 42. Cantidad facturada con cada categoría
-SELECT  Categorias.NombreCategoria AS "Categoria",
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Cantidad facturada"
-FROM    Categorias 
-        JOIN Productos ON Categorias.IdCategoria = Productos.IdCategoria
-        JOIN DetallesPedido ON Productos.IdProducto = DetallesPedido.IdProducto
-GROUP BY Categorias.IdCategoria, Categorias.NombreCategoria
-ORDER BY "Cantidad facturada" DESC;
+SELECT 
+    Categorias.NombreCategoria AS "Categoria",
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Cantidad facturada"
+FROM Categorias 
+JOIN Productos ON Categorias.IdCategoria = Productos.IdCategoria
+JOIN DetallesPedido ON Productos.IdProducto = DetallesPedido.IdProducto
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 43. Número de pedidos realizados por año y mes
-SELECT  YEAR(FechaPedido) AS "Año",
-        MONTH(FechaPedido) AS "Mes",
-        COUNT(*) AS "Numero de pedidos"
-FROM    Pedidos
-GROUP BY YEAR(FechaPedido), MONTH(FechaPedido)
-ORDER BY "Año", "Mes";
+SELECT 
+    YEAR(FechaPedido) AS "Año",
+    MONTH(FechaPedido) AS "Mes",
+    COUNT(*) AS "Numero de pedidos"
+FROM Pedidos
+GROUP BY 1, 2
+ORDER BY 1, 2;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 44. Ventas por territorio y región ordenado de mayor a menor ventas
-SELECT  Region.DescripcionRegion AS "Region",
-        Territorios.DescripcionTerritorio AS "Territorio",
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ventas"
-FROM    Region 
-        JOIN Territorios ON Region.IdRegion = Territorios.IdRegion
-        JOIN TerritoriosEmpleados ON Territorios.IdTerritorio = TerritoriosEmpleados.IdTerritorio
-        JOIN Empleados ON TerritoriosEmpleados.IdEmpleado = Empleados.IdEmpleado
-        JOIN Pedidos ON Empleados.IdEmpleado = Pedidos.IdEmpleado
-        JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
-GROUP BY Region.IdRegion, Region.DescripcionRegion, Territorios.IdTerritorio, Territorios.DescripcionTerritorio
-ORDER BY "Ventas" DESC;
+SELECT 
+    Region.DescripcionRegion AS "Region",
+    Territorios.DescripcionTerritorio AS "Territorio",
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ventas"
+FROM Region 
+JOIN Territorios ON Region.IdRegion = Territorios.IdRegion
+JOIN TerritoriosEmpleados ON Territorios.IdTerritorio = TerritoriosEmpleados.IdTerritorio
+JOIN Empleados ON TerritoriosEmpleados.IdEmpleado = Empleados.IdEmpleado
+JOIN Pedidos ON Empleados.IdEmpleado = Pedidos.IdEmpleado
+JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
+GROUP BY 1, 2, 3, 4
+ORDER BY 3 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 45. Número de pedidos realizados con 1 producto, con 2, con 3, etc.
-SELECT  COUNT(DISTINCT IdProducto) AS "Numero de productos",
-        COUNT(*) AS "Numero de pedidos"
-FROM    DetallesPedido
+SELECT 
+    COUNT(DISTINCT IdProducto) AS "Numero de productos",
+    COUNT(*) AS "Numero de pedidos"
+FROM DetallesPedido
 GROUP BY IdPedido
-ORDER BY "Numero de productos";
+ORDER BY 1;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 46. Relación de productos ordenada según la cantidad de ese producto que se ha pedido
-SELECT  NombreProducto AS "Producto",
-        SUM(Cantidad) AS "Total cantidad pedida"
-FROM    Productos JOIN DetallesPedido
-ON      Productos.IdProducto = DetallesPedido.IdProducto
-GROUP BY Productos.IdProducto, NombreProducto
-ORDER BY "Total cantidad pedida" DESC;
+SELECT 
+    NombreProducto AS "Producto",
+    SUM(Cantidad) AS "Total cantidad pedida"
+FROM Productos JOIN DetallesPedido
+ON Productos.IdProducto = DetallesPedido.IdProducto
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 47. Número de proveedores de cada categoría para categorías que tienen más de diez proveedores y ordenados de mayor a menor número de proveedores
-SELECT  NombreCategoria AS "Categoria",
-        COUNT(DISTINCT IdProveedor) AS "Numero de proveedores"
-FROM    Categorias 
-        JOIN Productos ON Categorias.IdCategoria = Productos.IdCategoria
-GROUP BY Categorias.IdCategoria, NombreCategoria
+SELECT 
+    NombreCategoria AS "Categoria",
+    COUNT(DISTINCT IdProveedor) AS "Numero de proveedores"
+FROM Categorias 
+JOIN Productos ON Categorias.IdCategoria = Productos.IdCategoria
+GROUP BY 1, 2
 HAVING COUNT(DISTINCT IdProveedor) > 10
-ORDER BY "Numero de proveedores" DESC;
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 48. Listado de proveedores y número de productos que provee cada uno ordenado del proveedor que más productos provee al que menos
-SELECT  NombreEmpresa AS "Proveedor",
-        COUNT(*) AS "Numero de productos"
-FROM    Proveedores JOIN Productos
-ON      Proveedores.IdProveedor = Productos.IdProveedor
-GROUP BY Proveedores.IdProveedor, NombreEmpresa
-ORDER BY "Numero de productos" DESC;
+SELECT 
+    NombreEmpresa AS "Proveedor",
+    COUNT(*) AS "Numero de productos"
+FROM Proveedores JOIN Productos
+ON Proveedores.IdProveedor = Productos.IdProveedor
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 49. Número medio de productos que provee cada proveedor
-SELECT  AVG(num_productos) AS "Numero medio de productos por proveedor"
-FROM    (
+SELECT 
+    AVG(num_productos) AS "Numero medio de productos por proveedor"
+FROM (
             SELECT COUNT(*) AS num_productos
             FROM Productos
             GROUP BY IdProveedor
@@ -690,8 +707,9 @@ FROM    (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 50. Número medio de productos diferentes que se piden en cada pedido (Si de un producto se piden cinco unidades, sólo se cuenta como ese producto se ha pedido una vez)
-SELECT  AVG(num_productos) AS "Numero medio de productos diferentes por pedido"
-FROM    (
+SELECT 
+    AVG(num_productos) AS "Numero medio de productos diferentes por pedido"
+FROM (
             SELECT COUNT(DISTINCT IdProducto) AS num_productos
             FROM DetallesPedido
             GROUP BY IdPedido
@@ -699,60 +717,67 @@ FROM    (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 51. Número medio de productos que se piden en cada pedido (Si de un producto se piden cinco unidades, se cuenta como que se han pedido cinco productos)
-SELECT  AVG(SUM(Cantidad)) AS "Numero medio de productos por pedido"
-FROM    DetallesPedido
+SELECT 
+    AVG(SUM(Cantidad)) AS "Numero medio de productos por pedido"
+FROM DetallesPedido
 GROUP BY IdPedido;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 52. Número de veces que se ha vendido cada producto (Si de un producto se venden cinco unidades, sólo se cuenta como ese producto se ha vendido una vez), ordenado del producto más vendido al que menos.
-SELECT  NombreProducto AS "Producto",
-        COUNT(*) AS "Numero de veces vendido"
-FROM    Productos JOIN DetallesPedido
-ON      Productos.IdProducto = DetallesPedido.IdProducto
-GROUP BY Productos.IdProducto, NombreProducto
-ORDER BY "Numero de veces vendido" DESC;
+SELECT 
+    NombreProducto AS "Producto",
+    COUNT(*) AS "Numero de veces vendido"
+FROM Productos JOIN DetallesPedido
+ON Productos.IdProducto = DetallesPedido.IdProducto
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 53. Número de unidades vendidas de cada producto (Si de un producto se venden cinco unidades, se cuenta como que se han vendido cinco productos), ordenado del producto más vendido al que menos.
-SELECT  NombreProducto AS "Producto",
-        SUM(Cantidad) AS "Unidades vendidas"
-FROM    Productos JOIN DetallesPedido
-ON      Productos.IdProducto = DetallesPedido.IdProducto
-GROUP BY Productos.IdProducto, NombreProducto
-ORDER BY "Unidades vendidas" DESC;
+SELECT 
+    NombreProducto AS "Producto",
+    SUM(Cantidad) AS "Unidades vendidas"
+FROM Productos JOIN DetallesPedido
+ON Productos.IdProducto = DetallesPedido.IdProducto
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 54. Número de veces que se se pide cada producto por pedido (Si de un producto se venden cinco unidades, sólo se cuenta como ese producto se ha vendido una vez), ordenado del producto más vendido al que menos.
-SELECT  IdPedido AS "Pedido",
-        COUNT(DISTINCT IdProducto) AS "Numero de productos distintos"
-FROM    DetallesPedido
-GROUP BY IdPedido
-ORDER BY "Numero de productos distintos" DESC;
+SELECT 
+    IdPedido AS "Pedido",
+    COUNT(DISTINCT IdProducto) AS "Numero de productos distintos"
+FROM DetallesPedido
+GROUP BY 1
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 55. Cantidad vendida de cada producto por pedido (Si de un producto se venden cinco unidades, cuentan las cinco unidades como cantidad vendida), ordenado del producto más vendido al que menos.
-SELECT  IdPedido AS "Pedido",
-        SUM(Cantidad) AS "Cantidad total vendida"
-FROM    DetallesPedido
-GROUP BY IdPedido
-ORDER BY "Cantidad total vendida" DESC;
+SELECT 
+    IdPedido AS "Pedido",
+    SUM(Cantidad) AS "Cantidad total vendida"
+FROM DetallesPedido
+GROUP BY 1
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 56. Número de clientes que han comprado cada producto
-SELECT  NombreProducto AS "Producto",
-        COUNT(DISTINCT Pedidos.IdCliente) AS "Numero de clientes"
-FROM    Productos 
-        JOIN DetallesPedido ON Productos.IdProducto = DetallesPedido.IdProducto
-        JOIN Pedidos ON DetallesPedido.IdPedido = Pedidos.IdPedido
-GROUP BY Productos.IdProducto, NombreProducto
-ORDER BY "Numero de clientes" DESC;
+SELECT 
+    NombreProducto AS "Producto",
+    COUNT(DISTINCT Pedidos.IdCliente) AS "Numero de clientes"
+FROM Productos 
+JOIN DetallesPedido ON Productos.IdProducto = DetallesPedido.IdProducto
+JOIN Pedidos ON DetallesPedido.IdPedido = Pedidos.IdPedido
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 57. Ingresos obtenidos con los cinco productos más caros
-SELECT  SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos productos mas caros"
-FROM    DetallesPedido 
-        JOIN Productos ON DetallesPedido.IdProducto = Productos.IdProducto
-WHERE   Productos.IdProducto IN (
+SELECT 
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos productos mas caros"
+FROM DetallesPedido 
+JOIN Productos ON DetallesPedido.IdProducto = Productos.IdProducto
+WHERE Productos.IdProducto IN (
             SELECT IdProducto
             FROM Productos
             ORDER BY PrecioUnitario DESC
@@ -761,10 +786,11 @@ WHERE   Productos.IdProducto IN (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 58. Ingresos obtenidos con los cinco productos más baratos
-SELECT  SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos productos mas baratos"
-FROM    DetallesPedido 
-        JOIN Productos ON DetallesPedido.IdProducto = Productos.IdProducto
-WHERE   Productos.IdProducto IN (
+SELECT 
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos productos mas baratos"
+FROM DetallesPedido 
+JOIN Productos ON DetallesPedido.IdProducto = Productos.IdProducto
+WHERE Productos.IdProducto IN (
             SELECT IdProducto
             FROM Productos
             ORDER BY PrecioUnitario ASC
@@ -773,41 +799,44 @@ WHERE   Productos.IdProducto IN (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 59. Ingresos obtenidos con cada uno de los cinco productos más caros (aparecerá cada producto por separado con la cantidad ganada con ese producto)
-SELECT  Productos.NombreProducto AS "Producto",
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos"
-FROM    Productos JOIN DetallesPedido
-ON      Productos.IdProducto = DetallesPedido.IdProducto
-WHERE   Productos.IdProducto IN (
+SELECT 
+    Productos.NombreProducto AS "Producto",
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos"
+FROM Productos JOIN DetallesPedido
+ON Productos.IdProducto = DetallesPedido.IdProducto
+WHERE Productos.IdProducto IN (
             SELECT IdProducto
             FROM Productos
             ORDER BY PrecioUnitario DESC
             LIMIT 5
         )
-GROUP BY Productos.IdProducto, Productos.NombreProducto
-ORDER BY "Ingresos" DESC;
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 60. Ingresos obtenidos con cada uno de los cinco productos más baratos (aparecerá cada producto por separado con la cantidad ganada con ese producto)
-SELECT  Productos.NombreProducto AS "Producto",
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos"
-FROM    Productos JOIN DetallesPedido
-ON      Productos.IdProducto = DetallesPedido.IdProducto
-WHERE   Productos.IdProducto IN (
+SELECT 
+    Productos.NombreProducto AS "Producto",
+    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS "Ingresos"
+FROM Productos JOIN DetallesPedido
+ON Productos.IdProducto = DetallesPedido.IdProducto
+WHERE Productos.IdProducto IN (
             SELECT IdProducto
             FROM Productos
             ORDER BY PrecioUnitario ASC
             LIMIT 5
         )
-GROUP BY Productos.IdProducto, Productos.NombreProducto
-ORDER BY "Ingresos" DESC;
+GROUP BY 1, 2
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 61. Ingresos obtenidos con los cinco productos más vendidos
-SELECT  SUM(Ingresos) AS "Ingresos productos mas vendidos"
-FROM    (
-            SELECT  SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS Ingresos
-            FROM    Productos JOIN DetallesPedido
-            ON      Productos.IdProducto = DetallesPedido.IdProducto
+SELECT 
+    SUM(Ingresos) AS "Ingresos productos mas vendidos"
+FROM (
+            SELECT SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS Ingresos
+            FROM Productos JOIN DetallesPedido
+            ON Productos.IdProducto = DetallesPedido.IdProducto
             GROUP BY Productos.IdProducto
             ORDER BY Ingresos DESC
             LIMIT 5
@@ -815,11 +844,12 @@ FROM    (
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 62. Ingresos obtenidos con los cinco productos menos vendidos
-SELECT  SUM(Ingresos) AS "Ingresos productos menos vendidos"
-FROM    (
-            SELECT  SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS Ingresos
-            FROM    Productos JOIN DetallesPedido
-            ON      Productos.IdProducto = DetallesPedido.IdProducto
+SELECT 
+    SUM(Ingresos) AS "Ingresos productos menos vendidos"
+FROM (
+            SELECT SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) AS Ingresos
+            FROM Productos JOIN DetallesPedido
+            ON Productos.IdProducto = DetallesPedido.IdProducto
             GROUP BY Productos.IdProducto
             ORDER BY Ingresos ASC
             LIMIT 5
@@ -838,8 +868,10 @@ FROM    (
 | Muy buen cliente   |          60001 |       10000000 |
 +--------------------+----------------+----------------+
 */
-SELECT  Clientes.NombreEmpresa AS "Cliente",
-        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) AS "Cantidad facturada",
+WITH ClientesClasificados AS (
+    SELECT 
+        Clientes.NombreEmpresa AS cliente,
+        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) AS cantidad_facturada,
         CASE 
             WHEN SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) >= 0 
             AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 1000 THEN 'Muy mal cliente'
@@ -851,12 +883,18 @@ SELECT  Clientes.NombreEmpresa AS "Cliente",
             AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 60000 THEN 'Buen cliente'
             WHEN SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) >= 60001 
             AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 10000000 THEN 'Muy buen cliente'
-        END AS "Clasificacion"
-FROM    Clientes 
-        JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
-        JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
-GROUP BY Clientes.IdCliente, Clientes.NombreEmpresa
-ORDER BY "Cantidad facturada" DESC;
+        END AS clasificacion
+    FROM Clientes 
+    JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
+    JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
+    GROUP BY Clientes.IdCliente, Clientes.NombreEmpresa
+)
+SELECT 
+    cliente AS "Cliente",
+    cantidad_facturada AS "Cantidad facturada",
+    clasificacion AS "Clasificacion"
+FROM ClientesClasificados
+ORDER BY 2 DESC;
 
 -- --------------------------------------------------------------------------------------
 -- Consulta 64. Según la cantidad facturada a cada cliente y basándote en la siguiente tabla, obtener un listado con las diferentes categorías de clientes y el número de clientes que hay en cada categoría
@@ -871,30 +909,31 @@ ORDER BY "Cantidad facturada" DESC;
 | Muy buen cliente   |          60001 |       10000000 |
 +--------------------+----------------+----------------+
 */
-SELECT  CASE 
-            WHEN cantidad_facturada >= 0 AND cantidad_facturada <= 1000 THEN 'Muy mal cliente'
-            WHEN cantidad_facturada >= 1001 AND cantidad_facturada <= 5000 THEN 'Mal cliente'
-            WHEN cantidad_facturada >= 5001 AND cantidad_facturada <= 30000 THEN 'Cliente normal'
-            WHEN cantidad_facturada >= 30001 AND cantidad_facturada <= 60000 THEN 'Buen cliente'
-            WHEN cantidad_facturada >= 60001 AND cantidad_facturada <= 10000000 THEN 'Muy buen cliente'
-        END AS "Categoria",
-        COUNT(*) AS "Numero de clientes"
-FROM    (
-            SELECT  Clientes.IdCliente,
-                    SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) AS cantidad_facturada
-            FROM    Clientes 
-                    JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
-                    JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
-            GROUP BY Clientes.IdCliente
-        ) AS Subconsulta
-GROUP BY 
+WITH CategoriasClientes AS (
+    SELECT 
+        SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) AS cantidad_facturada,
         CASE 
-            WHEN cantidad_facturada >= 0 AND cantidad_facturada <= 1000 THEN 'Muy mal cliente'
-            WHEN cantidad_facturada >= 1001 AND cantidad_facturada <= 5000 THEN 'Mal cliente'
-            WHEN cantidad_facturada >= 5001 AND cantidad_facturada <= 30000 THEN 'Cliente normal'
-            WHEN cantidad_facturada >= 30001 AND cantidad_facturada <= 60000 THEN 'Buen cliente'
-            WHEN cantidad_facturada >= 60001 AND cantidad_facturada <= 10000000 THEN 'Muy buen cliente'
-        END
-ORDER BY "Categoria";
+            WHEN SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) >= 0 
+            AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 1000 THEN 'Muy mal cliente'
+            WHEN SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) >= 1001 
+            AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 5000 THEN 'Mal cliente'
+            WHEN SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) >= 5001 
+            AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 30000 THEN 'Cliente normal'
+            WHEN SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) >= 30001 
+            AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 60000 THEN 'Buen cliente'
+            WHEN SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) >= 60001 
+            AND SUM(DetallesPedido.PrecioUnitario * DetallesPedido.Cantidad * (1 - DetallesPedido.Descuento)) + SUM(Pedidos.CargoEnvio) <= 10000000 THEN 'Muy buen cliente'
+        END AS categoria
+    FROM Clientes 
+    JOIN Pedidos ON Clientes.IdCliente = Pedidos.IdCliente
+    JOIN DetallesPedido ON Pedidos.IdPedido = DetallesPedido.IdPedido
+    GROUP BY Clientes.IdCliente
+)
+SELECT 
+    categoria AS "Categoria",
+    COUNT(*) AS "Numero de clientes"
+FROM CategoriasClientes
+GROUP BY 1
+ORDER BY 1;
 
 

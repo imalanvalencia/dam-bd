@@ -204,7 +204,48 @@ BEGIN
 END
 //
 
+-- -----------------------------------------------------------------
+-- Constructores de control de flujo: IF, CASE
+-- -----------------------------------------------------------------
+
+-- -----------------------------------------------------------------
+-- IF
+-- -----------------------------------------------------------------
+/*
+IF
+IF search_condition THEN statement_list
+[ELSEIF search_condition THEN statement_list] ...
+[ELSE statement_list]
+END IF;
+La sintaxis de la función IF() difiere de la del comando IF descrita aquí.
+Sintaxis de la funión IF(): IF(expr1,expr2,expr3)
+
+Manual MySQL v8.0: 13.6.5.2 IF Statement
+*/
+
+-- 5. Crea un procedimiento que nos diga (mediante un SELECT) si el primer número que le pasamos como parámetro es mayor, menor o igual que el segundo (usa IF)
+-- Procedimiento:  EsMayorMenorIgualIF, Parámetros: IntA, IntB
 
 
+DROP PROCEDURE IF EXISTS EsMayorMenorIgualIF;
+DELIMITER //
+
+//
+CREATE PROCEDURE EsMayorMenorIgualIF(IN IntA INT, IN IntB INT)
+BEGIN
+		IF IntA > IntB THEN SELECT CONCAT(IntA, " es mayor que ", IntB);
+        ELSEIF IntA > IntB THEN SELECT CONCAT(IntA, " es menor que ", IntB);
+        ELSEIF IntA = IntB THEN SELECT CONCAT(IntA, " es igual que ", IntB);
+        ELSE THEN SELECT "Algun valor es nulo" AS Resultado;
+        END IF;
+END
+//
+
+DELIMITER ;
+
+CALL EsMayorMenorIgualIF(5, 5);
+CALL EsMayorMenorIgualIF(5, NULL);
+CALL EsMayorMenorIgualIF(5, 6);
+CALL EsMayorMenorIgualIF(6, 5);
 
 

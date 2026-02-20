@@ -868,4 +868,159 @@ CALL LlenaFactoriales(50);              -- Este es el procedimiento que hay que 
 SELECT * FROM Factoriales;
 
 
+-- 17. De cada país que tenga lenguas oficiales, queremos saber el número posible de formas de ordenar sus lenguas oficiales. Usa la función factorial
+SELECT Nombre AS 'País', COUNT(Lengua) AS 'Número de lenguas oficiales'
+FROM   Pais LEFT JOIN LenguaPais
+ON     Pais.Codigo = LenguaPais.CodigoPais
+WHERE  EsOficial='T'
+GROUP BY Pais.Codigo;
+
+SELECT Nombre AS 'País', factorialesdb.Factorial(COUNT(Lengua)) AS 'Combinaciones de lenguas oficiales'
+FROM   Pais LEFT JOIN LenguaPais
+ON     Pais.Codigo = LenguaPais.CodigoPais
+WHERE  EsOficial='T'
+GROUP BY Pais.Codigo;
+
+-- 18. De cada país, queremos saber el número posible de formas de ordenar sus ciudades. Usa la BD de Factoriales
+
+
+
+SELECT 	Pais.Nombre AS 'País', 
+				(SELECT 	Factorial 
+				FROM 		factorialesdb.Factoriales 
+				WHERE 	Numero = (COUNT(Ciudad.Nombre))
+                ) AS 'Número posible de formas de ordenar sus ciudades'
+FROM   Pais LEFT JOIN Ciudad
+ON     Pais.Codigo = Ciudad.CodigoPais
+GROUP BY Pais.Codigo;
+
+
+-- -----------------------------------------------------------------
+-- Ejercicio criba de Eratóstenes
+-- -----------------------------------------------------------------
+/*
+Número primo:
+Un número primo es aquel número natural mayor que uno que admite únicamente dos divisores diferentes: el mismo número y el 1. A diferencia de los números primos, los números compuestos son naturales que pueden factorizarse. La propiedad de ser primo se denomina primalidad. 
+
+El algoritmo RSA se basa en la obtención de la clave pública mediante la multiplicación de dos números grandes (mayores que 10^200) que sean primos. La seguridad de este algoritmo radica en que no se conocen maneras rápidas de factorizar un número grande en sus factores primos utilizando computadoras tradicionales.
+
+https://es.wikipedia.org/wiki/Criba_de_Erat%C3%B3stenes
+
+Tests de primalidad
+La criba de Eratóstenes fue concebida por Eratóstenes de Cirene, un matemático griego del siglo III a. C. Es un algoritmo sencillo que permite encontrar todos los números primos menores o iguales que un número dado. Se basa en confeccionar una lista de todos los números naturales desde el 2 hasta ese número y tachar repetidamente los múltiplos de los números primos ya descubiertos.
+
+Criba de Erastótenes. Algoritmo en pseudocódigo:
+
+Entrada: Un número natural n
+Salida: El conjunto de números primos anteriores a n (incluyendo n)
+
+   Escriba todos los números naturales desde 2 hasta n
+   Para i desde 2 hasta raíz cuadrada de n haga lo siguiente:
+      Si i no ha sido marcado entonces:
+         Para j desde i hasta n/i haga lo siguiente:
+            Ponga una marca en i x j
+   El resultado es: Todos los números sin marca
+*/
+
+
+-- Código de apoyo:
+DROP DATABASE IF EXISTS Primos;
+CREATE DATABASE IF NOT EXISTS Primos;
+USE Primos;
+
+DROP TABLE IF EXISTS `NumerosPrimos`;
+CREATE TABLE `NumerosPrimos` (
+    `Numero` INTEGER NOT NULL,
+    `Marcado` BOOLEAN,
+    PRIMARY KEY (`Numero`)
+) ENGINE = Memory;
+
+TRUNCATE TABLE NumerosPrimos;
+INSERT INTO NumerosPrimos VALUES(7, FALSE);
+UPDATE NumerosPrimos SET Marcado= TRUE WHERE Numero=7;
+SELECT * FROM NumerosPrimos;
+SELECT * FROM NumerosPrimos WHERE Marcado;
+SELECT Marcado FROM NumerosPrimos WHERE Numero=7;
+
+-- 19. Realiza un procedimiento que implemente la parte “Escriba todos los números naturales desde 2 hasta n”. No es necesario controlar posibles errores en el parámetro de entrada
+-- Procedimiento: LlenarTabla. Parámetros: ValorMaximo
+DROP PROCEDURE IF EXISTS LlenarTabla;
+DELIMITER //
+
+//
+CREATE PROCEDURE LlenarTabla(IN ValorMaximo INT)
+BEGIN
+		DECLARE Contador INT DEFAULT 2;
+        
+        TRUNCATE TABLE NumerosPrimos;
+        
+		WHILE Contador <=  ValorMaximo DO
+			INSERT INTO NumerosPrimos VALUES(Contador, FALSE);
+			SET Contador = Contador + 1;
+		END WHILE;
+END
+// 
+
+DELIMITER ;
+
+CALL LlenarTabla(120);              -- Este es el procedimiento que hay que hacer
+SELECT * FROM NumerosPrimos;
+
+
+-- 20. Implementa el algoritmo de la criba de Eratóstenes
+-- Procedimiento: CribaDeEratsotenes. Parámetros: ValorMaximo
+
+DROP PROCEDURE IF EXISTS CribaEratostenes;
+DELIMITER //
+
+//
+CREATE PROCEDURE CribaEratostenes(IN ValorMaximo INT)
+BEGIN
+		DECLARE i INT DEFAULT 2;
+        DECLARE j INT;
+        
+		WHILE i <=  SQRT(ValorMaximo) DO
+	
+			IF NOT (SELECT Marcado FROM NumerosPrimos WHERE Numero = i) THEN 
+				 set j = i;
+	
+                 WHILE j  <=  ValorMaximo / i DO
+					UPDATE NumerosPrimos SET Marcado= TRUE WHERE Numero = i * j;
+                    
+                    SET j = j + 1;
+				END WHILE;
+            END IF;
+            
+            
+			SET i = i + 1;  
+		END WHILE;
+END
+// 
+
+DELIMITER ;
+
+CALL CribaEratostenes(120);              -- Este es el procedimiento que hay que hacer
+SELECT * FROM NumerosPrimos;
+SELECT * FROM NumerosPrimos WHERE  NOT Marcado;
+
+-- 22. Crea un procedimiento que llamaremos TestDePrimalidad al que le pasaremos el valor máximo como parámetro y que llenará la tabla, llamará al algoritmo CribaDeEsrastotenes y mostrará en pantalla los números primos obtenidos
+-- Procedimiento: TestDePrimalidad. Parámetros: ValorMaximo
+DROP PROCEDURE IF EXISTS TestDePrimalidad;
+DELIMITER //
+
+//
+CREATE PROCEDURE TestDePrimalidad(IN ValorMaximo INT)
+BEGIN
+	CALL LlenarTabla(ValorMaximo);    
+	CALL CribaEratostenes(ValorMaximo);   
+    
+    SELECT Numero FROM NumerosPrimos WHERE  NOT Marcado;
+END
+// 
+
+DELIMITER ;
+
+CALL TestDePrimalidad(400000);     
+
+
 

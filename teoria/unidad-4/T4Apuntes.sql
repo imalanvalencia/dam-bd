@@ -1020,7 +1020,219 @@ END
 
 DELIMITER ;
 
-CALL TestDePrimalidad(400000);     
+CALL TestDePrimalidad(400000);
+
+DROP TABLE IF EXISTS `NumerosPrimosHDD`;
+CREATE TABLE `NumerosPrimosHDD`(SELECT Numero FROM NumerosPrimos WHERE  NOT Marcado);
+
+SELECT * FROM NumerosPrimosHDD;
+
+-- -----------------------------------------------------------------
+-- Base de datos de la Liga
+-- -----------------------------------------------------------------
+-- 23. Queremos usar dos funciones: GolesLocal y GolesVisitante que nos de los goles marcados por el equipo local y por el equipo visitante de un partido. Crea la función GolesLocal
+-- Resultado bien formado:
+-- 3-2; 11-2; 03-2; 3-02; 03-02
+-- Función: GolesLocal, parámetro: Resultado
+DROP FUNCTION IF EXISTS GolesLocal;
+DELIMITER //
+
+//
+CREATE FUNCTION GolesLocal(Resultado CHAR(15)) RETURNS INT
+BEGIN
+	DECLARE Goles INT;
+    SET Goles = ASCII(LEFT(Resultado, 1)) - ASCII("0");
+    IF SUBSTRING(Resultado, 2, 1) <> "-" THEN
+		SET Goles = Goles * 10 + ASCII(SUBSTRING(Resultado, 2, 1)) - ASCII("0");
+    END IF;
+    RETURN Goles;
+END
+// 
+
+DELIMITER ;
+
+SELECT Resultado, GolesLocal(ResultadoBis) FROM Partidos;
+DELETE FROM Partidos WHERE ID = 25578;
+
+-- 23. Crea las funciones EsDigito que devuelve TRUE si el carácter que se le pasa es un dígito CaracterANumero que convierte un dígito en un número y simplifica la función GolesLocal2 que es una copia de la función GolesLocal
+-- Función: EsDigito. Parámetros: Caracter
+-- Función: CaracterANumero. Parámetros: Caracter
+DROP FUNCTION IF EXISTS EsDigito;
+DELIMITER //
+
+//
+CREATE FUNCTION EsDigito(Caracter CHAR) RETURNS BOOL
+BEGIN
+    RETURN Caracter BETWEEN '0' AND "9";
+END
+// 
+
+DELIMITER ;
+
+SELECT EsDigito("4");
+
+DROP FUNCTION IF EXISTS CaracterANumero;
+DELIMITER //
+
+//
+CREATE FUNCTION CaracterANumero(Caracter CHAR) RETURNS BOOL
+BEGIN
+    RETURN ASCII(Caracter) - ASCII("0");
+END
+// 
+
+DELIMITER ;
+
+SELECT CaracterANumero("6");
+
+DROP FUNCTION IF EXISTS GolesLocal2;
+DELIMITER //
+
+//
+CREATE FUNCTION GolesLocal2(Resultado CHAR(15)) RETURNS INT
+BEGIN
+	DECLARE Goles INT;
+    SET Goles = CaracterANumero(LEFT(Resultado, 1));
+    
+    IF EsDigito(SUBSTRING(Resultado, 2, 1)) THEN
+		SET Goles = Goles * 10 + CaracterANumero(SUBSTRING(Resultado, 2, 1));
+    END IF;
+    
+    RETURN Goles;
+END
+// 
+
+DELIMITER ;
+
+SELECT Resultado, GolesLocal2(ResultadoBis) FROM Partidos;
+SELECT Resultado, GolesLocal(ResultadoBis) FROM Partidos;
+
+-- 24. Crea la función GolesVisitante
+-- Función: GolesVisitante. Parámetros: Caracter
+DROP FUNCTION IF EXISTS GolesVisitante;
+DELIMITER //
+
+//
+CREATE FUNCTION GolesVisitante(Resultado CHAR(15)) RETURNS INT
+BEGIN
+	DECLARE Goles, Puntero INT;
+    
+    IF NOT EsDigito(SUBSTRING(Resultado, 2, 1)) 
+		THEN SET Puntero = 3;
+        ELSE SET Puntero = 4;
+    END IF;
+    
+    SET Goles = CaracterANumero(SUBSTRING(Resultado, Puntero, 1));
+    
+    IF CHAR_LENGTH(Resultado) > Puntero THEN
+		SET Goles = Goles * 10 + CaracterANumero(SUBSTRING(Resultado, Puntero + 1, 1));
+	END IF;
+    
+    RETURN Goles;
+END
+// 
+
+DELIMITER ;
+SELECT Resultado, GolesLocal2(ResultadoBis), GolesVisitante(ResultadoBis) FROM Partidos;
+
+-- 25. Partidos en los que un equipo ha ganado al otro por siete o más goles
+SELECT  CONCAT(EquipoLocal," - " ,EquipoVisitante) AS Partidos, Temporada, Jornada, ResultadoBis
+FROM Partidos
+WHERE ABS(GolesLocal2(ResultadoBis) - GolesVisitante(ResultadoBis)) >= 7;
 
 
+-- 26. Las 20 mayores goleadas de la historia de la liga
+SELECT  CONCAT(EquipoLocal," - " ,EquipoVisitante) AS Partidos, Temporada, Jornada, ResultadoBis
+FROM Partidos
+ORDER BY ABS(GolesLocal2(ResultadoBis) - GolesVisitante(ResultadoBis)) DESC
+LIMIT 20;
+
+-- 27. Nombre de todos los equipos. Queremos ver cuántos equipos diferentes hay, no cuántos nombres han tenido todos los equipos (EquipoLocalX)
+SELECT DISTINCT EquipoLocalX as "Equipos" FROM Partidos
+UNION DISTINCT
+SELECT DISTINCT EquipoVisitanteX as "Equipos" FROM Partidos;
+
+-- -----------------------------------------------------------------
+-- Modificación de la base de datos de la liga:
+-- -----------------------------------------------------------------
+-- En bases de datos no es normal que haya solo una tabla
+ALTER TABLE Partidos ADD COLUMN GolesLocal TINYINT NOT NULL DEFAULT 0;
+ALTER TABLE Partidos ADD COLUMN GolesVisitante TINYINT NOT NULL DEFAULT 0;
+
+SELECT * FROM Partidos;
+
+UPDATE Partidos
+SET GolesLocal = GolesLocal(ResultadoBis);
+
+UPDATE Partidos
+SET GolesVisitante = GolesVisitante(ResultadoBis);
+
+SELECT * FROM Partidos;
+
+ALTER TABLE Partidos ADD COLUMN Alirones CHAR NOT NULL DEFAULT '';
+
+UPDATE Partidos
+SET Alirones = 'L'
+WHERE Resultado LIKE '%(A.L.)%';
+
+UPDATE Partidos
+SET Alirones = 'V'
+WHERE Resultado LIKE '%(A.V.)%';
+
+ALTER TABLE Partidos DROP COLUMN ResultadoBis;
+ALTER TABLE Partidos DROP COLUMN Resultado;
+
+DROP TABLE Equipos;
+CREATE TABLE Equipos AS 
+	(SELECT DISTINCT EquipoLocalX as "NombreEquipo" FROM Partidos)
+	UNION DISTINCT
+	(SELECT DISTINCT EquipoVisitanteX as "NombreEquipo" FROM Partidos)
+	ORDER BY NombreEquipo;
+
+ALTER TABLE Equipos ADD COLUMN IdEquipo INT NOT NULL PRIMARY KEY AUTO_INCREMENT FIRST;
+
+ALTER TABLE Partidos ADD COLUMN EL INT NOT NULL DEFAULT 0;
+ALTER TABLE Partidos ADD COLUMN EV INT NOT NULL DEFAULT 0;
+
+SELECT * 
+FROM Partidos JOIN Equipos
+ON Partidos.EquipoLocalX = Equipos.NombreEquipo; 
+
+UPDATE Partidos JOIN Equipos
+ON Partidos.EquipoLocalX = Equipos.NombreEquipo
+SET Partidos.EL = Equipos.IdEquipo; 
+
+UPDATE Partidos JOIN Equipos
+ON Partidos.EquipoVisitanteX = Equipos.NombreEquipo
+SET Partidos.EV = Equipos.IdEquipo; 
+
+
+ALTER TABLE Partidos DROP COLUMN EquipoLocal;
+ALTER TABLE Partidos DROP COLUMN EquipoLocalX;
+ALTER TABLE Partidos DROP COLUMN EquipoLocalBis;
+ALTER TABLE Partidos DROP COLUMN EquipoVisitante;
+ALTER TABLE Partidos DROP COLUMN EquipoVisitanteX;
+ALTER TABLE Partidos DROP COLUMN EquipoVisitanteBis;
+
+ALTER TABLE Partidos CHANGE COLUMN EL EquipoLocal INT NOT NULL DEFAULT 0;
+ALTER TABLE Partidos CHANGE COLUMN EV EquipoVisitante INT NOT NULL DEFAULT 0;
+
+ALTER TABLE Partidos ADD CONSTRAINT
+EquipoLocalFK FOREIGN KEY (EquipoLocal) REFERENCES Equipos(IdEquipo);
+
+ALTER TABLE Partidos ADD CONSTRAINT
+EquipoVisitanteFK FOREIGN KEY (EquipoVisitante) REFERENCES Equipos(IdEquipo);
+
+SELECT * FROM Partidos WHERE Jornada = "PROMOCION";
+SELECT * FROM Partidos WHERE Jornada NOT REGEXP "^[0-9][0-9]\\.$";
+
+
+ALTER TABLE Partidos ADD COLUMN Promocion BOOL NOT NULL DEFAULT FALSE AFTER Jornada;
+UPDATE Partidos
+SET Promocion = (Jornada = "Promocion");
+
+SELECT * FROM Partidos;
+SELECT * FROM Equipos;
+
+SELECT * FROM Partidos WHERE Alirones <> '';
 

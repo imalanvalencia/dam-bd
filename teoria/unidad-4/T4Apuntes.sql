@@ -1234,5 +1234,110 @@ SET Promocion = (Jornada = "Promocion");
 SELECT * FROM Partidos;
 SELECT * FROM Equipos;
 
-SELECT * FROM Partidos WHERE Alirones <> '';
+ALTER TABLE Partidos ADD COLUMN JornadaNueva INT NOT NULL DEFAULT 0 AFTER Jornada;
+SELECT Jornada, CONVERT(LEFT(Jornada,2), SIGNED) FROM Partidos WHERE NOT PROMOCION;
+
+UPDATE Partidos SET  JornadaNueva = CONVERT(LEFT(Jornada,2), SIGNED) WHERE NOT PROMOCION;
+
+ALTER TABLE Partidos DROP COLUMN Jornada;
+ALTER TABLE Partidos CHANGE COLUMN JornadaNueva Jornada INT NOT NULL DEFAULT 0;
+
+
+
+SELECT 	Id, Temporada, Anyo as "Año", 
+				IF(Promocion, "PROMOCIÓN", 
+					IF( Jornada > 10, 
+						CONCAT('0', Jornada, '.'), 
+                        CONCAT(Jornada, '.')
+                    )) AS "Jornada",
+                    Equlocales.NombreEquipo AS "Equipo Local", 	EquVisitantes.NombreEquipo AS "Equipo Visitante" ,
+                    CONCAT(GolesLocal, '-' ,GolesVisitante) AS "Resultado"
+
+FROM 		Partidos JOIN Equipos Equlocales JOIN Equipos EquVisitantes
+ON 			Partidos.EquipoLocal = Equlocales.IdEquipo 
+				AND Partidos.EquipoVisitante = EquVisitantes.IdEquipo 
+ORDER BY Id;
+
+-- -----------------------------------------------------------------
+-- Cursores
+-- -----------------------------------------------------------------
+/*
+Tenemos toda la información en el manual de referencia de MySQL v8.0:  13.6.6 Cursors
+
+Los cursores se declaran, se abren, se recorren y se cierran
+
+DECLARE cursor_name CURSOR FOR select_statement;
+Los cursores de declaran justo después de las variables
+
+OPEN cursor_name;
+
+FETCH cursor_name INTO var_name [, var_name] ...;
+Este comando trata el siguiente registro (si existe) usando el cursor abierto que se especifique, y avanza el puntero del cursor.
+
+CLOSE cursor_name;
+cierra un cursor abierto préviamente
+
+En los cursores hay que detectar cuando se llega al final de la tabla. Para ello usaremos un  manejador
+DECLARE handler_type HANDLER FOR condition_value[,...] sp_statement;
+Este comando especifica handlers que pueden tratar una o varias condiciones. Si una de estas condiciones ocurren, el comando especificado se ejecuta.
+*/   
+
+
+-- 29. Realizamos un cursor muy simple en el que creamos una tabla con una consulta SELECT en la que mostramos el nombre del equipo junto con el saldo total de goles que ha metido como equipo local menos el número de goles que le han metido los visitantes. Recorreremos esa tabla mostrando individualmente cada equipo y su saldo de goles
+-- Primero creamos la consulta SELECT en la que se basa el cursor:
+SELECT Equipos.NombreEquipo AS 'Nombre del equipo',
+       SUM(GolesLocal-GolesVisitante) AS 'Saldo de goles'
+FROM   Partidos JOIN Equipos
+ON     Partidos.EquipoLocal = Equipos.IdEquipo
+GROUP BY Equipos.IdEquipo
+ORDER BY `Saldo de goles` DESC;
+
+-- Procedimiento:  PruebaCursor
+DROP PROCEDURE IF EXISTS PruebaCursor;
+DELIMITER //
+
+//
+CREATE PROCEDURE PruebaCursor()
+BEGIN
+
+	DECLARE CEquipo VARCHAR(255);
+    DECLARE CSaldoGoles INT;
+    DECLARE FinCurEquipos BOOL DEFAULT FALSE;
+    
+	DECLARE CurEquipos CURSOR FOR
+				SELECT Equipos.NombreEquipo AS 'Nombre del equipo',
+					SUM(GolesLocal-GolesVisitante) AS 'Saldo de goles'
+					FROM   Partidos JOIN Equipos
+					ON     Partidos.EquipoLocal = Equipos.IdEquipo
+					GROUP BY Equipos.IdEquipo
+					ORDER BY `Saldo de goles` DESC
+                    LIMIT 5;
+					
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET FinCurEquipos = TRUE;
+    
+    
+	OPEN		CurEquipos;
+  
+  /*
+  Lo hace la cantida de veces que le digas (hay que repetirlos ps)
+   FETCH		CurEquipos INTO CEquipo, CSaldoGoles;
+	SELECT CONCAT("Equipo: ", CEquipo, ". Saldo de goles: ", CSaldoGoles) AS "Resultado";
+   */
+   
+    BucleEquipos: LOOP
+		FETCH		CurEquipos INTO CEquipo, CSaldoGoles;
+         IF FinCurEquipos THEN LEAVE BUcleEquipos; END IF;
+		SELECT CONCAT("Equipo: ", CEquipo, ". Saldo de goles: ", CSaldoGoles) AS "Resultado";
+	END LOOP BucleEquipos;
+    
+	Close		CurEquipos;
+
+END
+//
+
+DELIMITER ;
+
+CALL PruebaCursor();
+
+
 

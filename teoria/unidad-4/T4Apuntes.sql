@@ -1339,5 +1339,284 @@ DELIMITER ;
 
 CALL PruebaCursor();
 
+-- 30 De todos los partidos de la liga, queremos buscar series en las que el Barcelona ha ganado como equipo visitante durante ocho o más jornadas seguidas
+-- La consulta
+SELECT GolesLocal, GolesVisitante
+FROM   Partidos
+WHERE  EquipoVisitante = (
+   SELECT IdEquipo
+   FROM   Equipos
+   WHERE  NombreEquipo = 'Barcelona')
+ORDER BY Temporada, Promocion, Jornada;
 
+/*
+NumRepeticiones= 0
+bucle
+   obtener siguiente registro
+   Si he llegado al final salir del bucle
+   IF GVisitante > GLocal
+       THEN
+           Incrementamos NumRepeticiones
+       ELSE
+           IF NumRepeticiones >= 8
+               THEN
+                   Hemos encontrado una serie
+           NumRepeticiones=0
+fin bucle
+*/
+
+
+/*
+NumRepeticiones= 0
+bucle
+   obtener siguiente registro
+   IF GVisitante > GLocal y no hemos llegado al final
+     THEN
+         Incrementamos NumRepeticiones
+     ELSE
+         IF NumRepeticiones >= 8
+             THEN
+                 Hemos encontrado una serie
+         NumRepeticiones=0
+         Si he llegado al final salir del bucle        
+fin bucle
+*/
+
+-- La estructura del cursor
+-- El procedimiento se llama:  SeriesBarcelona
+-- El cursor se llamará:  CurSeriesBarcelona
+-- Las variables serán:  GLocal, Gvisitante y FinCurSeriesBarcelona
+
+DROP PROCEDURE IF EXISTS SeriesBarcelona;
+DELIMITER //
+
+//
+CREATE PROCEDURE SeriesBarcelona()
+BEGIN
+	DECLARE NumRepeticiones INT DEFAULT 0;
+    DECLARE GLocal, GVisitante INT;
+    DECLARE SJornada INT(11);
+    DECLARE STemporada CHAR(15);
+    DECLARE FinCurSeriesBarcelona BOOL DEFAULT FALSE;
+
+	DECLARE CurSeriesBarcelona CURSOR FOR
+					SELECT GolesLocal, GolesVisitante, Temporada, Jornada
+					FROM   Partidos
+					WHERE  EquipoVisitante = (
+					   SELECT IdEquipo
+					   FROM   Equipos
+					   WHERE  NombreEquipo = 'Barcelona')
+					ORDER BY Temporada, Promocion, Jornada;
+						
+		DECLARE CONTINUE HANDLER FOR NOT FOUND SET FinCurSeriesBarcelona = TRUE;
+    
+    
+	OPEN		CurSeriesBarcelona;
+	BucleEquipos: LOOP
+		FETCH		CurSeriesBarcelona INTO GLocal, GVisitante, STemporada, SJornada;
+        
+         IF  GVisitante > GLocal AND NOT FinCurSeriesBarcelona
+         THEN SET NumRepeticiones = NumRepeticiones + 1;
+         ELSE
+			IF NumRepeticiones >= 8
+				THEN SELECT CONCAT("Hemos Encontrado uina serie de ", NumRepeticiones, "repeticiones dek Barcelona como visitante que acabo la jornada ", SJornada, " de la temporada ", STemporada) AS "Resultado";
+			END IF;
+            
+            SET NumRepeticiones = 0;
+            IF FinCurSeriesBarcelona THEN LEAVE BucleEquipos; END IF;
+         END IF;
+	END LOOP BucleEquipos;
+    
+	Close		CurSeriesBarcelona;
+
+END
+//
+
+DELIMITER ;
+
+CALL SeriesBarcelona();
+
+-- 31. Parametrizar el procedimiento para que admita cualquier tamaño de la serie y cualquier equipo. Si la serie es menor que 2 o el equipo no existe, mostrará un error
+
+DROP PROCEDURE IF EXISTS SeriesEquipo;
+DELIMITER //
+
+//
+CREATE PROCEDURE SeriesEquipo(IN ParamEquipo VARCHAR(255), IN TamSerie INT)
+PSeriesEquipo: BEGIN
+	DECLARE NumRepeticiones INT DEFAULT 0;
+    DECLARE GLocal, GVisitante INT;
+    DECLARE SJornada INT(11);
+    DECLARE STemporada CHAR(15);
+    DECLARE FinCurSeriesEquipo BOOL DEFAULT FALSE;
+
+	DECLARE CurSeriesEquipo CURSOR FOR
+					SELECT GolesLocal, GolesVisitante, Temporada, Jornada
+					FROM   Partidos
+					WHERE  EquipoVisitante = (
+					   SELECT IdEquipo
+					   FROM   Equipos
+					   WHERE  NombreEquipo = ParamEquipo)
+					ORDER BY Temporada, Promocion, Jornada;
+						
+		DECLARE CONTINUE HANDLER FOR NOT FOUND SET FinCurSeriesEquipo = TRUE;
+    
+    IF TamSerie < 2 OR TamSerie IS NULL THEN 
+		SELECT "La serie tiene que ser mayor de dos y no se nulo" AS "ERROR"; 
+		LEAVE PSeriesEquipo;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM Equipos WHERE NombreEquipo = ParamEquipo) THEN
+		SELECT CONCAT("El equipo ", ParamEquipo, " no existe") AS "ERROR"; 
+		LEAVE PSeriesEquipo;
+    END IF;
+    
+	OPEN		CurSeriesEquipo;
+	BucleEquipos: LOOP
+		FETCH		CurSeriesEquipo INTO GLocal, GVisitante, STemporada, SJornada;
+        
+         IF  GVisitante > GLocal AND NOT FinCurSeriesEquipo
+         THEN SET NumRepeticiones = NumRepeticiones + 1;
+         ELSE
+			IF NumRepeticiones >= TamSerie
+				THEN SELECT CONCAT("Hemos Encontrado uina serie de ", NumRepeticiones, " repeticiones del  ", ParamEquipo, " como visitante que acabo la jornada ", SJornada, " de la temporada ", STemporada) AS "Resultado";
+			END IF;
+            
+            SET NumRepeticiones = 0;
+            IF FinCurSeriesEquipo THEN LEAVE BucleEquipos; END IF;
+         END IF;
+	END LOOP BucleEquipos;
+    
+	Close		CurSeriesEquipo;
+
+END PSeriesEquipo
+//
+
+DELIMITER ;
+
+CALL SeriesEquipo("Barcelona",8);
+
+
+
+-- 32. Mostrar la información de los partidos de la serie
+
+-- Para trabajar con tablas temporales:
+CREATE TEMPORARY TABLE IF NOT EXISTS InformacionSerie (
+  IdPartido INT(11) NOT NULL
+) ENGINE = MEMORY;
+INSERT INTO InformacionSerie VALUES (50);
+INSERT INTO InformacionSerie VALUES (150);
+SELECT * FROM InformacionSerie;
+TRUNCATE TABLE InformacionSerie;
+SELECT * FROM InformacionSerie;
+DROP TABLE IF EXISTS InformacionSerie;
+
+-- Para mostrar la información de la serie de partidos encontrados
+INSERT INTO InformacionSerie VALUES (1);
+INSERT INTO InformacionSerie VALUES (10);
+INSERT INTO InformacionSerie VALUES (100);
+INSERT INTO InformacionSerie VALUES (115);
+INSERT INTO InformacionSerie VALUES (215);
+INSERT INTO InformacionSerie VALUES (315); 
+
+-- Para mostrar la información de los partidos de la serie (basada en la consulta 53)
+SELECT Id, Temporada, Anyo AS 'Año',
+       IF(Promocion, 'PROMOCIÓN',
+          IF(Jornada < 10,
+              CONCAT('0', Jornada, '.'),
+              CONCAT(Jornada, '.'))) AS 'Jornada',
+       EquipoLocal.NombreEquipo AS 'Equipo local',
+       EquipoVisitante.NombreEquipo AS 'Equipo Visitante',
+       CONCAT(GolesLocal, '-', GolesVisitante) AS 'Resultado'
+FROM InformacionSerie JOIN
+     Partidos JOIN Equipos AS EquipoLocal JOIN Equipos AS EquipoVisitante
+ON   InformacionSerie.IdPartido = Partidos.Id AND
+     Partidos.EquipoLocal = EquipoLocal.IdEquipo AND
+     Partidos.EquipoVisitante = EquipoVisitante.IdEquipo
+ORDER BY Id;
+
+DROP PROCEDURE IF EXISTS SeriesEquipo;
+DELIMITER //
+
+//
+CREATE PROCEDURE SeriesEquipo(IN ParamEquipo VARCHAR(255), IN TamSerie INT)
+PSeriesEquipo: BEGIN
+	DECLARE NumRepeticiones INT DEFAULT 0;
+    DECLARE GLocal, GVisitante INT;
+    DECLARE SJornada, SIdPartido  INT(11);
+    DECLARE STemporada CHAR(15);
+    DECLARE FinCurSeriesEquipo BOOL DEFAULT FALSE;
+
+	DECLARE CurSeriesEquipo CURSOR FOR
+					SELECT Id, GolesLocal, GolesVisitante, Temporada, Jornada
+					FROM   Partidos
+					WHERE  EquipoVisitante = (
+					   SELECT IdEquipo
+					   FROM   Equipos
+					   WHERE  NombreEquipo = ParamEquipo)
+					ORDER BY Temporada, Promocion, Jornada;
+						
+		DECLARE CONTINUE HANDLER FOR NOT FOUND SET FinCurSeriesEquipo = TRUE;
+    
+    IF TamSerie < 2 OR TamSerie IS NULL THEN 
+		SELECT "La serie tiene que ser mayor de dos y no se nulo" AS "ERROR"; 
+		LEAVE PSeriesEquipo;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM Equipos WHERE NombreEquipo = ParamEquipo) THEN
+		SELECT CONCAT("El equipo ", ParamEquipo, " no existe") AS "ERROR"; 
+		LEAVE PSeriesEquipo;
+    END IF;
+    
+    DROP TABLE IF EXISTS InformacionSerie;
+    CREATE TEMPORARY TABLE IF NOT EXISTS InformacionSerie (
+		IdPartido INT(11) NOT NULL
+	) ENGINE = MEMORY;
+    
+	OPEN		CurSeriesEquipo;
+	BucleEquipos: LOOP
+		FETCH CurSeriesEquipo INTO SIdPartido, GLocal, GVisitante, STemporada, SJornada;
+        
+         IF  GVisitante > GLocal AND NOT FinCurSeriesEquipo
+			THEN 
+				SET NumRepeticiones = NumRepeticiones + 1;
+                INSERT INTO InformacionSerie VALUES (SIdPartido);
+         ELSE
+			IF NumRepeticiones >= TamSerie
+				THEN 
+					SELECT CONCAT("Hemos Encontrado uina serie de ", NumRepeticiones, " repeticiones del  ", ParamEquipo, " como visitante que acabo la jornada ", SJornada, " de la temporada ", STemporada) AS "Resultado";
+                    
+                    SELECT Id, Temporada, Anyo AS 'Año',
+						   IF(Promocion, 'PROMOCIÓN',
+							  IF(Jornada < 10,
+								  CONCAT('0', Jornada, '.'),
+								  CONCAT(Jornada, '.'))) AS 'Jornada',
+						   EquipoLocal.NombreEquipo AS 'Equipo local',
+						   EquipoVisitante.NombreEquipo AS 'Equipo Visitante',
+						   CONCAT(GolesLocal, '-', GolesVisitante) AS 'Resultado'
+					FROM InformacionSerie JOIN
+						 Partidos JOIN Equipos AS EquipoLocal JOIN Equipos AS EquipoVisitante
+					ON   InformacionSerie.IdPartido = Partidos.Id AND
+						 Partidos.EquipoLocal = EquipoLocal.IdEquipo AND
+						 Partidos.EquipoVisitante = EquipoVisitante.IdEquipo
+					ORDER BY Id;
+                    
+			END IF;
+            
+            SET NumRepeticiones = 0;
+            TRUNCATE TABLE InformacionSerie;
+            
+            IF FinCurSeriesEquipo THEN LEAVE BucleEquipos; END IF;
+         END IF;
+	END LOOP BucleEquipos;
+    
+	Close		CurSeriesEquipo;
+    DROP TABLE IF EXISTS InformacionSerie; 
+
+END PSeriesEquipo
+//
+
+DELIMITER ;
+
+CALL SeriesEquipo("Barcelona",8);
 

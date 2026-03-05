@@ -1620,3 +1620,367 @@ DELIMITER ;
 
 CALL SeriesEquipo("Barcelona",8);
 
+
+-- -----------------------------------------------------------------
+-- Disparadores
+-- -----------------------------------------------------------------
+/*
+Tenemos toda la información en el manual de referencia de MySQL v8.0:  25.3.1 Trigger Syntax and Examples y en A.5 MySQL 8.0 FAQ: Triggers
+
+Un disparador es programa almacenado que se ejecuta automáticamente como respuesta a un evento específico asociado a una tabla, por ejemplo, un INSERT, UPDATE o DELETE.*/
+
+-- 33. Realizamos un disparador muy simple 
+DROP TABLE IF EXISTS EquiposB;
+CREATE TABLE EquiposB AS SELECT * FROM Equipos;
+
+CREATE TRIGGER BeforeEquiposBDelete 
+BEFORE DELETE ON EquiposB
+FOR EACH ROW
+SET @Borrados = @Borrados + 1;
+
+SET @Borrados = 0;
+
+DELETE FROM EquiposB WHERE NombreEquipo = "Barcelona";
+SELECT @Borrados;
+
+SELECT * FROM EquiposB WHERE NombreEquipo LIKE "%Madrid%";
+SELECT @Borrados;
+
+DELETE FROM EquiposB WHERE NombreEquipo LIKE "%Madrid%";
+SELECT @Borrados;
+
+
+/*
+A diferencia de un procedimiento, a un diparador no podemos llamarlo. Para que se ejecute debemos ejecutar nosotros una instrucción INSERT, UPDATE o DELETE sobre la tabla en la cual está definido el disparador.
+
+Ventajas:
+permiten comprobar la integridad de los datos
+permiten ejecutar tareas programadas (por ejemplo, incrementar un contador cada vez que se borra un registro)
+son muy útiles para auditar cambios en las tablas
+
+Inconvenientes:
+no pueden realizar todas las comprobaciones de integridad. Algunas deberán hacerse en el lado del cliente
+se les llama y ejecuta de manera invisible de la aplicación cliente por lo que no es fácil depurar errores
+pueden llegar a sobrecargar la BD
+
+Una tabla puede tener seis disparadores: BEFORE INSERT, AFTER INSERT, BEFORE UPDATE, AFTER UPDATE, BEFORE DELETE y AFETER DELETE. Los disparadores no afectan a ordenes que no son INSERT, UPDATE o DELETE; como por ejemplo, TRUNCATE; pero sí afectan a otras ordenes que las usan internamente, como por ejemplo REPLACE o SOURCE.
+
+Como hemos visto con el ejemplo anterior, un disparador se ejecuta para cada registro que se añade, actualiza o borra en la tabla. Si una orden, por ejemplo, borra varios registros, su disparador se ejecuta varias veces.
+
+Los nombres de los disparadores suelen seguir la siguiente convención: 
+(BEFORE | AFTER)_NombreTabla_(INSERT| UPDATE | DELETE) o sus variantes
+(BEFORE | AFTER)NombreTabla(INSERT| UPDATE | DELETE)
+(Antes | Despues)_(Insertar | Actualizar | Borrar)_NombreTabla
+(Antes | Despues)(Insertar | Actualizar | Borrar)NombreTabla
+
+Un disparador puede tener una única orden, por ejemplo, un SET o podría tener una llamada a un procedimiento que nos permitiría aprovechar el mismo código para varios disparadores. Si ponemos más de una orden en un disparador, usaremos un bloque BEGIN, END.
+
+Las palabras clave OLD y NEW son muy útiles y se refieren al registro que se va insertar, borrar o actualizar antes o depués de la acción. En un disparador INSERT sólo podemos usar NEW.Campo. En un disparador DELETE sólo podemos usar OLD.Campo. En un disparador UPDATE podemos usar tanto OLD.Campo como NEW.Campo para referirnos al valor de un campo del registro antes de actualizarlo o después. Todos los campos OLD son de sólo lectura, pero los campos NEW en un disparador BEFORE UPDATE o BEFORE INSERT son de lectura y escritura, lo que nos permite modificar el valor que se va a añadir o actualizar en la BD. */
+
+DROP TABLE IF EXISTS EquiposB;
+CREATE TABLE EquiposB AS SELECT * FROM Equipos;
+
+ALTER TABLE EquiposB ADD COLUMN AnyFundacion INT;
+SELECT * FROM EquiposB;
+
+UPDATE EquiposB SET AnyFundacion = IdEquipo + 1900;
+UPDATE EquiposB SET AnyFundacion = 1899 WHERE NombreEquipo = "Barcelona";
+UPDATE EquiposB SET AnyFundacion = 1900 WHERE NombreEquipo LIKE "%Madrid%";
+
+
+DROP TRIGGER IF EXISTS BeforeEquiposBInsert;
+DELIMITER //
+
+//
+CREATE TRIGGER BeforeEquiposBInsert
+BEFORE INSERT ON EquiposB
+FOR EACH ROW
+BEGIN
+	IF NEW.AnyFundacion < 100 THEN SET NEW.AnyFundacion = NEW.AnyFundacion + 2000;  END IF;
+END 
+//
+
+DELIMITER ;
+
+INSERT INTO EquiposB VALUES (130, "Prueba1", 2015);
+INSERT INTO EquiposB VALUES (130, "Prueba2", 10);
+SELECT * FROM EquiposB WHERE NombreEquipo LIKE "Prueba%";
+
+-- 34. Modificar el disparador anterior para que si introducimos años como por ejemplo 98, nos cree el año 1998
+DROP TRIGGER IF EXISTS BeforeEquiposBInsert;
+DELIMITER //
+
+CREATE TRIGGER BeforeEquiposBInsert
+BEFORE INSERT ON EquiposB
+FOR EACH ROW
+BEGIN
+	IF NEW.AnyFundacion <= YEAR(CURDATE()) - 2000
+		THEN SET NEW.AnyFundacion = NEW.AnyFundacion + 2000;
+	ELSEIF NEW.AnyFundacion < 100
+		THEN SET NEW.AnyFundacion = NEW.AnyFundacion + 1900;
+    END IF;
+END //
+
+DELIMITER ;
+
+DELETE FROM EquiposB WHERE NombreEquipo LIKE 'Prueba%';
+INSERT INTO EquiposB VALUES (140,'Prueba1',0);
+INSERT INTO EquiposB VALUES (141,'Prueba2',18);
+INSERT INTO EquiposB VALUES (142,'Prueba3',19);
+INSERT INTO EquiposB VALUES (142,'Prueba3',20);
+INSERT INTO EquiposB VALUES (143,'Prueba4',30);
+INSERT INTO EquiposB VALUES (144,'Prueba5',99);
+INSERT INTO EquiposB VALUES (145,'Prueba6',100);
+SELECT * FROM EquiposB WHERE NombreEquipo LIKE 'Prueba%';
+
+
+-- 35. Modificar el disparador anterior para afecte a las actualizaciones
+DROP TRIGGER IF EXISTS BeforeEquiposBUpdate;
+DELIMITER //
+
+CREATE TRIGGER BeforeEquiposBUpdate
+BEFORE UPDATE ON EquiposB
+FOR EACH ROW
+BEGIN
+	IF NEW.AnyFundacion <= YEAR(CURDATE()) - 2000
+		THEN SET NEW.AnyFundacion = NEW.AnyFundacion + 2000;
+	ELSEIF NEW.AnyFundacion < 100
+		THEN SET NEW.AnyFundacion = NEW.AnyFundacion + 1900;
+    END IF;
+END //
+
+DELIMITER ;
+
+UPDATE EquiposB SET AnyFundacion = IdEquipo;
+SELECT * FROM EquiposB ORDER BY 3;
+
+-- 36. Añadir dos campos a la tabla EquiposB: GolesLocal y GolesVisitante que indiquen los goles marcados por el equipo como local y como visitante. Bloquea la tabla para cualquier operación de escritura, actualiza los dos nuevos campos con sus valores correctos, crea los disparadores que mantendrán esos dos valores actualizados ante cualquier modificación de la tabla partidos y desbloquea la tabla.
+ALTER TABLE EquiposB ADD COLUMN GolesLocal INT DEFAULT 0;
+ALTER TABLE EquiposB ADD COLUMN GolesVisitante INT DEFAULT 0;
+
+ UPDATE EquiposB SET GolesLocal = (
+	SELECT SUM(GolesLocal) 
+    FROM Partidos 
+    WHERE Partidos.EquipoLocal = EquiposB.IdEquipo
+);
+
+ UPDATE EquiposB SET GolesVisitante = (
+	SELECT SUM(GolesVisitante) 
+    FROM Partidos 
+    WHERE Partidos.EquipoVisitante = EquiposB.IdEquipo
+);
+
+UPDATE EquiposB SET GolesLocal = 0 WHERE GolesLocal IS NULL;
+UPDATE EquiposB SET GolesVisitante = 0 WHERE GolesLocal IS NULL;
+
+
+
+DROP TRIGGER IF EXISTS AfterPartidosInsert;
+DELIMITER //
+
+CREATE TRIGGER AfterPartidosInsert
+AFTER INSERT ON Partidos
+FOR EACH ROW
+BEGIN
+	 UPDATE EquiposB SET GolesLocal = GolesLocal + NEW.GolesLocal WHERE EquiposB.IdEquipo = New.EquipoLocal;
+     UPDATE EquiposB SET GolesVisitante = GolesVisitante + NEW.GolesVisitante WHERE EquiposB.IdEquipo = New.EquipoVisitante;
+END //
+
+DELIMITER ;
+
+SELECT * FROM EquiposB;
+
+-- Pruebas de AfterPartidosInsert: 
+SELECT * FROM EquiposB WHERE IdEquipo IN (17, 18);
+-- Partido Barcelona-Betis
+INSERT INTO Partidos VALUES (40001,'2015-2016',2015,99,0,3,6,'',17,18); 
+SELECT * FROM EquiposB WHERE IdEquipo IN (17, 18);
+-- Partido Betis-Barcelona 
+INSERT INTO Partidos VALUES (40002,'2015-2016',2015,99,0,2,2,'',18,17);
+SELECT * FROM EquiposB WHERE IdEquipo IN (17, 18); 
+
+/*
+'17', 'Barcelona', '3899', '2253'
+'18', 'Betis',     '1412',  '912'
+*/
+
+
+DROP TRIGGER IF EXISTS AfterPartidosDelete;
+DELIMITER //
+
+CREATE TRIGGER AfterPartidosDelete
+AFTER DELETE ON Partidos
+FOR EACH ROW
+BEGIN
+	 UPDATE EquiposB SET GolesLocal = GolesLocal - OLD.GolesLocal WHERE EquiposB.IdEquipo = OLD.EquipoLocal;
+     UPDATE EquiposB SET GolesVisitante = GolesVisitante - OLD.GolesVisitante WHERE EquiposB.IdEquipo = OLD.EquipoVisitante;
+END //
+
+DELIMITER ;
+
+
+-- Pruebas de AfterPartidosDelete:
+DELETE FROM Partidos WHERE Id = 40002;
+DELETE FROM Partidos WHERE Id = 40001;
+
+
+DROP TRIGGER IF EXISTS AfterPartidosUpdate;
+DELIMITER //
+
+CREATE TRIGGER AfterPartidosUpdate
+AFTER UPDATE ON Partidos
+FOR EACH ROW
+BEGIN
+	IF OLD.GolesLocal != NEW.GolesLocal 
+		OR OLD.GolesVisitante != NEW.GolesVisitante 
+        OR OLD.EquipoLocal != NEW.EquipoLocal 
+        OR OLD.EquipoVisitante != NEW.EquipoVisitante
+        THEN
+			 UPDATE EquiposB SET GolesLocal = GolesLocal - OLD.GolesLocal WHERE EquiposB.IdEquipo = OLD.EquipoLocal;
+			 UPDATE EquiposB SET GolesVisitante = GolesVisitante - OLD.GolesVisitante WHERE EquiposB.IdEquipo = OLD.EquipoVisitante;
+			 UPDATE EquiposB SET GolesLocal = GolesLocal + NEW.GolesLocal WHERE EquiposB.IdEquipo = New.EquipoLocal;
+			UPDATE EquiposB SET GolesVisitante = GolesVisitante + NEW.GolesVisitante WHERE EquiposB.IdEquipo = New.EquipoVisitante;
+     END IF;
+END //
+
+DELIMITER ;
+
+
+-- Pruebas de AfterPartidosUpdate:
+SELECT * FROM EquiposB WHERE IdEquipo IN (17, 67, 81); -- Barcelona, Real Madrid y Xerez
+SELECT * FROM Partidos WHERE EquipoLocal=17 AND EquipoVisitante=67 LIMIT 1; 
+SELECT * FROM Partidos WHERE Id = 7;
+UPDATE Partidos SET GolesLocal=3, GolesVisitante=5 WHERE Id=7; 
+UPDATE Partidos SET GolesLocal=1, GolesVisitante=2 WHERE Id=7;
+UPDATE Partidos SET EquipoLocal=81 WHERE Id=7;
+UPDATE Partidos SET EquipoLocal=17 WHERE Id=7;
+UPDATE Partidos SET EquipoVisitante=81 WHERE Id=7;
+UPDATE Partidos SET EquipoVisitante=67 WHERE Id=7;
+
+/*
+'7', '1929', '1929', '2', '0', '1', '2', '17', '67'
+'17', 'Barcelona',   '3901', '2253'
+'67', 'Real_Madrid', '3631', '2222'
+'81', 'Xerez_2',       '20',   '18'
+
+*/
+
+-- -----------------------------------------------------------------
+-- Ejercicio completo
+-- -----------------------------------------------------------------
+DROP TABLE IF EXISTS EquiposB;
+CREATE TABLE EquiposB AS SELECT * FROM Equipos;
+ALTER TABLE EquiposB ADD COLUMN GolesLocal INT DEFAULT 0;
+ALTER TABLE EquiposB ADD COLUMN GolesVisitante INT DEFAULT 0;
+
+LOCK TABLES Partidos Write, EquiposB Write; 
+
+UPDATE EquiposB SET GolesLocal = (
+    SELECT SUM(GolesLocal) FROM Partidos
+    WHERE Partidos.EquipoLocal = EquiposB.IdEquipo);
+UPDATE EquiposB SET GolesVisitante = (
+    SELECT SUM(GolesVisitante) FROM Partidos
+    WHERE Partidos.EquipoVisitante = EquiposB.IdEquipo);
+UPDATE EquiposB SET GolesLocal = 0 WHERE GolesLocal IS NULL;
+UPDATE EquiposB SET GolesVisitante = 0 WHERE GolesVisitante IS NULL;
+
+DROP TRIGGER IF EXISTS AfterPartidosInsert; 
+DELIMITER // 
+CREATE TRIGGER AfterPartidosInsert
+AFTER INSERT ON Partidos
+FOR EACH ROW
+BEGIN
+    UPDATE EquiposB SET GolesLocal = GolesLocal + NEW.GolesLocal
+    WHERE  EquiposB.IdEquipo = NEW.EquipoLocal;
+    UPDATE EquiposB SET GolesVisitante = GolesVisitante + NEW.GolesVisitante
+    WHERE  EquiposB.IdEquipo = NEW.EquipoVisitante;    
+END// 
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS AfterPartidosDelete; 
+DELIMITER // 
+CREATE TRIGGER AfterPartidosDelete
+AFTER DELETE ON Partidos
+FOR EACH ROW
+BEGIN
+    UPDATE EquiposB SET GolesLocal = GolesLocal - OLD.GolesLocal
+    WHERE  EquiposB.IdEquipo = OLD.EquipoLocal;
+    UPDATE EquiposB SET GolesVisitante = GolesVisitante - OLD.GolesVisitante
+    WHERE  EquiposB.IdEquipo = OLD.EquipoVisitante;    
+END// 
+DELIMITER ; 
+
+DROP TRIGGER IF EXISTS AfterPartidosUpdate; 
+DELIMITER // 
+CREATE TRIGGER AfterPartidosUpdate
+AFTER UPDATE ON Partidos
+FOR EACH ROW
+BEGIN
+    IF OLD.GolesLocal <> NEW.GolesLocal OR
+       OLD.GolesVisitante <> NEW.GolesVisitante OR
+       OLD.EquipoLocal <> NEW.EquipoLocal OR
+       OLD.EquipoVisitante <> NEW.EquipoVisitante THEN
+            UPDATE EquiposB SET GolesLocal = GolesLocal - OLD.GolesLocal
+            WHERE  EquiposB.IdEquipo = OLD.EquipoLocal;
+            UPDATE EquiposB SET GolesVisitante = GolesVisitante - OLD.GolesVisitante
+            WHERE  EquiposB.IdEquipo = OLD.EquipoVisitante; 
+            UPDATE EquiposB SET GolesLocal = GolesLocal + NEW.GolesLocal
+            WHERE  EquiposB.IdEquipo = NEW.EquipoLocal;
+            UPDATE EquiposB SET GolesVisitante = GolesVisitante + NEW.GolesVisitante
+            WHERE  EquiposB.IdEquipo = NEW.EquipoVisitante;    
+    END IF;
+END// 
+DELIMITER ; 
+
+UNLOCK TABLES;
+-- -----------------------------------------------------------------
+-- Fin ejercicio completo
+-- -----------------------------------------------------------------
+
+
+-- -----------------------------------------------------------------
+-- Auditoría de Bases de Datos
+-- -----------------------------------------------------------------
+-- 37. Queremos llevar una auditoría de los cambios realizados en los nombres de equipo de la tabla EquiposB. Para cada cambio, guardaremos el momento en que se realizó el cambio, el usuario que lo hace, qué operación se hizo ('Insertar', 'Actualizar' o 'Borrar'), el identificador del equipo modificado, el nombre del equipo antiguo y el nombre del equipo nuevo.
+-- Funciones que vamos a usar: SELECT NOW(), USER();
+-- Tipos devueltos por las funciones: CHAR(20) y VARCHAR(255)
+
+DROP TABLE IF EXISTS EquiposB; 
+CREATE TABLE EquiposB AS SELECT * FROM Equipos; 
+
+DROP TABLE IF EXISTS AuditEquiposB; 
+CREATE TABLE AuditEquiposB ( 
+  IdAuditEquiposB INT(11) NOT NULL AUTO_INCREMENT, 
+  FechaHora       CHAR(20) NOT NULL, 
+  Usuario         VARCHAR(255), 
+  Operacion       ENUM('Insertar','Actualizar','Borrar') NOT NULL, 
+  IdEquipo        INT(11) NOT NULL, 
+  EquipoAntiguo   VARCHAR(255) DEFAULT NULL, 
+  EquipoNuevo     VARCHAR(255) DEFAULT NULL, 
+  PRIMARY KEY (IdAuditEquiposB) 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+DROP TRIGGER IF EXISTS AfterEquipoBInsert; 
+DELIMITER // 
+CREATE TRIGGER AfterEquipoBInsert
+AFTER INSERT ON EquiposB
+FOR EACH ROW
+BEGIN
+	 INSERT INTO AuditEquiposB VALUES(NULL, Now(), USER(), "Insertar",  NEW.IdEquipo, NULL, NEW.NombreEquipo);
+END// 
+DELIMITER ;
+
+
+SELECT * FROM AuditEquiposB;
+SELECT * FROM EquiposB;
+SELECT Now(), USER();
+
+-- Pruebas:
+TRUNCATE TABLE AuditEquiposB; 
+DELETE FROM EquiposB WHERE IdEquipo BETWEEN 200 AND 205;
+INSERT INTO EquiposB VALUES (200, 'CF Venta de Baños');
+INSERT INTO EquiposB VALUES (201, 'Club Natación Alicante'); 
+INSERT INTO EquiposB VALUES (202, 'Sociedad Deportiva Cultural Michelín'); 
+INSERT INTO EquiposB VALUES (203, 'Mecánico Futbol Club'); 
+SELECT * FROM AuditEquiposB;

@@ -1971,6 +1971,31 @@ BEGIN
 END// 
 DELIMITER ;
 
+DROP TRIGGER IF EXISTS AfterEquipoBUpdate; 
+DELIMITER // 
+CREATE TRIGGER AfterEquipoBUpdate
+AFTER UPDATE ON EquiposB
+FOR EACH ROW
+BEGIN
+	IF OLD.IdEquipo = NEW.IdEquipo 
+		THEN	 INSERT INTO AuditEquiposB VALUES(NULL, Now(), USER(), "Actualizar",  NEW.IdEquipo, NEW.NombreEquipo, NULL);
+		ELSE
+			INSERT INTO AuditEquiposB VALUES(NULL, Now(), USER(), "Borrar",  OLD.IdEquipo, OLD.IdEquipo, NULL);
+			INSERT INTO AuditEquiposB VALUES(NULL, Now(), USER(), "Insertar",  NEW.IdEquipo, NULL, NEW.NombreEquipo);
+	END IF;
+END// 
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS AfterEquipoBDelete; 
+DELIMITER // 
+CREATE TRIGGER AfterEquipoBDelete
+AFTER DELETE ON EquiposB
+FOR EACH ROW
+BEGIN
+	INSERT INTO AuditEquiposB VALUES(NULL, Now(), USER(), "Borrar",  OLD.IdEquipo, OLD.IdEquipo, NULL);
+END// 
+DELIMITER ;
+
 
 SELECT * FROM AuditEquiposB;
 SELECT * FROM EquiposB;
@@ -1984,3 +2009,59 @@ INSERT INTO EquiposB VALUES (201, 'Club Natación Alicante');
 INSERT INTO EquiposB VALUES (202, 'Sociedad Deportiva Cultural Michelín'); 
 INSERT INTO EquiposB VALUES (203, 'Mecánico Futbol Club'); 
 SELECT * FROM AuditEquiposB;
+
+UPDATE EquiposB SET NombreEquipo='CF Venta de Baños B' WHERE IdEquipo=200; 
+UPDATE EquiposB SET NombreEquipo='Club Natación Alicante B' WHERE IdEquipo=201; 
+UPDATE EquiposB SET NombreEquipo='Sociedad Deportiva Cultural Michelín B' WHERE IdEquipo=202; 
+UPDATE EquiposB SET IdEquipo=204 WHERE IdEquipo=203; 
+SELECT * FROM AuditEquiposB;
+
+DELETE FROM EquiposB WHERE IdEquipo BETWEEN 200 AND 210; 
+SELECT * FROM AuditEquiposB;
+
+-- 38. Crea un procedimiento que elimine los registros que tengan más de: el número de días que pasemos como parámetro de la tabla de auditoría de EquiposB
+TRUNCATE Table AuditEquiposB;
+-- Pruebas  (Ejecutar dos veces)
+INSERT INTO EquiposB VALUES (200, 'CF Venta de Baños'); 
+INSERT INTO EquiposB VALUES (201, 'Club Natación Alicante'); 
+INSERT INTO EquiposB VALUES (202, 'Sociedad Deportiva Cultural Michelín'); 
+INSERT INTO EquiposB VALUES (203, 'Mecánico Futbol Club'); 
+UPDATE EquiposB SET NombreEquipo='CF Venta de Baños B' WHERE IdEquipo=200; 
+UPDATE EquiposB SET NombreEquipo='Club Natación Alicante B' WHERE IdEquipo=201; 
+UPDATE EquiposB SET NombreEquipo='Sociedad Deportiva Cultural Michelín B' WHERE IdEquipo=202; 
+UPDATE EquiposB SET IdEquipo=204 WHERE IdEquipo=203; 
+DELETE FROM EquiposB WHERE IdEquipo>=200 AND IdEquipo<210; 
+SELECT * FROM AuditEquiposB;
+
+UPDATE AuditEquiposB
+SET    FechaHora = ADDDATE(NOW(), INTERVAL (IdAuditEquiposB - 35) DAY);
+
+
+DROP PROCEDURE IF EXISTS LimpiezaAuditEquiposB; 
+DELIMITER // 
+
+CREATE PROCEDURE LimpiezaAuditEquiposB(IN Dias INT)
+BEGIN
+	DELETE FROM AuditEquiposB WHERE DATEDIFF(NOW(), FechaHora) > Dias;
+END// 
+DELIMITER ;
+
+SELECT * FROM AuditEquiposB;
+CALL LimpiezaAuditEquiposB(15);
+
+DROP PROCEDURE IF EXISTS GuardaAuditEquiposB; 
+DELIMITER // 
+
+CREATE PROCEDURE GuardaAuditEquiposB(IN Dias INT)
+BEGIN
+	SELECT * INTO "AuditEquiposB.Log" 
+	FROM AuditEquiposB
+    WHERE DATEDIFF(NOW(), FechaHora) > Dias;
+END// 
+DELIMITER ;
+
+CALL GuardaAuditEquiposB(15);
+
+-- -----------------------------------------------------------------
+-- FIN DEL TEMA
+-- -----------------------------------------------------------------

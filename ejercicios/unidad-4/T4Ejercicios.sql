@@ -64,19 +64,19 @@ BEGIN
     SELECT Nombre, 'País' FROM Pais WHERE Continente = pContinente ORDER BY Poblacion DESC LIMIT 1;
     
     INSERT INTO Informacion 
-    SELECT c.Nombre, 'Ciudad' 
-    FROM Ciudad c 
-    JOIN Pais p ON c.CodigoPais = p.Codigo 
-    WHERE p.Continente = pContinente 
-    ORDER BY c.Poblacion DESC 
+    SELECT Ciudad.Nombre, 'Ciudad' 
+    FROM Ciudad JOIN Pais 
+    ON Ciudad.CodigoPais = Pais.Codigo 
+    WHERE Pais.Continente = pContinente 
+    ORDER BY Ciudad.Poblacion DESC 
     LIMIT 1;
     
     INSERT INTO Informacion 
-    SELECT lp.Lengua, 'Lengua' 
-    FROM LenguaPais lp
-    JOIN Pais p ON lp.CodigoPais = p.Codigo
-    WHERE p.Continente = pContinente
-    GROUP BY lp.Lengua 
+    SELECT LenguaPais.Lengua, 'Lengua' 
+    FROM LenguaPais JOIN Pais 
+    ON LenguaPais.CodigoPais = Pais.Codigo
+    WHERE Pais.Continente = pContinente
+    GROUP BY LenguaPais.Lengua 
     ORDER BY COUNT(*) DESC 
     LIMIT 1;
     
@@ -144,18 +144,34 @@ DELIMITER //
 
 CREATE PROCEDURE Ejercicio4(IN n INT)
 BEGIN
+	DECLARE  i INT;
+    DECLARE  j INT;
+    DECLARE aInsertar VARCHAR(255);
+    
+	
     CREATE TEMPORARY TABLE IF NOT EXISTS CadenaTabla (
         Cadena VARCHAR(255)
     ) ENGINE = MEMORY;
     
     IF n >= 2 AND n <= 9 AND n IS NOT NULL THEN
-        WHILE n > 0 DO
-            INSERT INTO CadenaTabla VALUES(REPEAT('*', n));
-            SET n = n - 1;
+        SET i = 1;
+        
+        WHILE i <= n DO
+			SET aInsertar = "";
+			SET j =i;
+            
+			WHILE j <= n DO
+                SET aInsertar = CONCAT(aInsertar, j);
+                SET j = j + 1;
+            END WHILE;
+            
+            SELECT aInsertar;
+            INSERT INTO CadenaTabla VALUES(aInsertar);
+            
+            SET i = i + 1;
         END WHILE;
     END IF;
-    
-    SELECT * FROM CadenaTabla;
+	SELECT * FROM     CadenaTabla;
     DROP TABLE IF EXISTS CadenaTabla;
 END //
 
@@ -207,17 +223,26 @@ DELIMITER //
 
 CREATE PROCEDURE Ejercicio5(IN n INT)
 BEGIN
+ DECLARE contador INT DEFAULT 1;
+ DECLARE aInsertar VARCHAR(255);
+ 
+ 
     CREATE TEMPORARY TABLE IF NOT EXISTS CadenaTabla (
         Cadena VARCHAR(255)
     ) ENGINE = MEMORY;
     
     IF n >= 2 AND n <= 9 AND n IS NOT NULL THEN
-        DECLARE contador INT DEFAULT 1;
-        
+    
+		 INSERT INTO CadenaTabla VALUES("");
+             
         WHILE contador <= n DO
-            INSERT INTO CadenaTabla VALUES(LEFT('12345', contador));
+			SET aInsertar = CONCAT("", contador);
+            INSERT INTO CadenaTabla VALUES(aInsertar);
             SET contador = contador + 1;
         END WHILE;
+        
+        
+         INSERT INTO CadenaTabla VALUES("");
     END IF;
     
     SELECT * FROM CadenaTabla;
@@ -292,11 +317,11 @@ BEGIN
     ELSEIF numHabitantes IS NULL OR numHabitantes < 0 THEN
         SELECT 'El número de habitantes debe ser mayor o igual a 0' AS 'ERROR';
     ELSE
-        SELECT p.Nombre
-        FROM Pais p
-        JOIN Ciudad c ON p.Codigo = c.CodigoPais
-        WHERE c.Poblacion >= numHabitantes
-        GROUP BY p.Codigo
+        SELECT Pais.Nombre
+        FROM Pais JOIN Ciudad 
+        ON Pais.Codigo = Ciudad.CodigoPais
+        WHERE Ciudad.Poblacion >= numHabitantes
+        GROUP BY Pais.Codigo
         HAVING COUNT(*) >= numCiudades;
     END IF;
 END //

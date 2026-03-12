@@ -96,25 +96,29 @@ MDB  > CALL Ejercicio3(5);
 +--------+
 | Cadena |
 +--------+
-|        |
-|        |
-|        |
-|        |
-|        |
+| *****  |
+| *****  |
+| *****  |
+| *****  |
+| *****  |
 +--------+*/
+
 DROP PROCEDURE IF EXISTS Ejercicio3;
 DELIMITER //
 
 CREATE PROCEDURE Ejercicio3(IN n INT)
 BEGIN
+	DECLARE i INT DEFAULT n;
+    
     CREATE TEMPORARY TABLE IF NOT EXISTS CadenaTabla (
         Cadena VARCHAR(255)
     ) ENGINE = MEMORY;
     
     IF n >= 2 AND n <= 9 AND n IS NOT NULL THEN
-        WHILE n > 0 DO
-            INSERT INTO CadenaTabla VALUES('');
-            SET n = n - 1;
+		
+        WHILE i > 0 DO
+            INSERT INTO CadenaTabla VALUES(REPEAT("*", n));
+            SET i = i - 1;
         END WHILE;
     END IF;
     
@@ -182,49 +186,39 @@ CALL Ejercicio4(5);
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 5. Crea un procedimiento al que le pasamos como parámetro un valor entre 2 y 9 creando la siguiente tabla. En el ejemplo se ha usado el valor 5 como parámetro
 /* Salida esperada:
-|         |
+MDB  > CALL Ejercicio5(5);
 +---------+
 | Cadena  |
 +---------+
-|         |
-| 11      |
-| 112     |
-| 1123    |
-| 11234   |
-| 112345  |
-|         |
+| ******* |
+| *1    * |
+| *12   * |
+| *123  * |
+| *1234 * |
+| *12345* |
+| ******* |
 +---------+
 IMPORTANTE: Seguramente en WorkBench verás algo similar a:
-
-
-
-
-
-
-
-
-11 
-
-112 
-
-1123 
-
-11234
-
-112345
-
+*******
+*1 *
+*12 *
+*123 *
+*1234*
+*12345*
 Se debe a que WorkBench usa una funete de "espaciado proporcional' lo que significa que el carácter espacio es menos ancho (ocupa menos) que otros caracteres
 Para comprobar que tu consulta sale bien puedes hacer dos cosas:
 1. Hacer el CALL Ejercicio5(5) desde el intérprete de comandos
 2. Cambiar la fuente a una monoespaciado en el menú Edit > preferences > Fonts & Colors > Resultset Grid: Consolas 10
 */
+
 DROP PROCEDURE IF EXISTS Ejercicio5;
 DELIMITER //
 
 CREATE PROCEDURE Ejercicio5(IN n INT)
 BEGIN
- DECLARE contador INT DEFAULT 1;
- DECLARE aInsertar VARCHAR(255);
+ DECLARE i INT DEFAULT 1;
+ DECLARE j INT DEFAULT 1;
+ DECLARE aInsertar VARCHAR(255) DEFAULT "*";
  
  
     CREATE TEMPORARY TABLE IF NOT EXISTS CadenaTabla (
@@ -233,16 +227,19 @@ BEGIN
     
     IF n >= 2 AND n <= 9 AND n IS NOT NULL THEN
     
-		 INSERT INTO CadenaTabla VALUES("");
+		INSERT INTO CadenaTabla VALUES(REPEAT("*", n));
              
-        WHILE contador <= n DO
-			SET aInsertar = CONCAT("", contador);
-            INSERT INTO CadenaTabla VALUES(aInsertar);
-            SET contador = contador + 1;
+        WHILE i <= n DO
+			WHILE j  <= i DO 
+				SET aInsertar = CONCAT(aInsertar, j);
+                SET j = j + 1;
+            END WHILE;
+			INSERT INTO CadenaTabla VALUES(aInsertar);
+            SET i = i + 1;
         END WHILE;
         
         
-         INSERT INTO CadenaTabla VALUES("");
+         INSERT INTO CadenaTabla VALUES(REPEAT("*", n));
     END IF;
     
     SELECT * FROM CadenaTabla;
@@ -312,15 +309,15 @@ DELIMITER //
 
 CREATE PROCEDURE Ejercicio7(IN numCiudades INT, IN numHabitantes INT)
 BEGIN
-    IF numCiudades IS NULL OR numCiudades < 1 THEN
-        SELECT 'El número de ciudades debe ser mayor o igual a 1' AS 'ERROR';
+    IF numCiudades IS NULL OR numCiudades < 2 THEN
+        SELECT 'El número de ciudades debe ser mayor o igual a 2' AS 'ERROR';
     ELSEIF numHabitantes IS NULL OR numHabitantes < 0 THEN
         SELECT 'El número de habitantes debe ser mayor o igual a 0' AS 'ERROR';
     ELSE
-        SELECT Pais.Nombre
-        FROM Pais JOIN Ciudad 
-        ON Pais.Codigo = Ciudad.CodigoPais
-        WHERE Ciudad.Poblacion >= numHabitantes
+        SELECT 	Pais.Nombre
+        FROM 		Pais JOIN Ciudad 
+        ON 			Pais.Codigo = Ciudad.CodigoPais
+        WHERE 	Ciudad.Poblacion >= numHabitantes
         GROUP BY Pais.Codigo
         HAVING COUNT(*) >= numCiudades;
     END IF;
@@ -335,22 +332,22 @@ CALL Ejercicio7(2, 2000000);
 DROP PROCEDURE IF EXISTS Ejercicio8;
 DELIMITER //
 
-CREATE PROCEDURE Ejercicio8(IN pPais VARCHAR(255))
+CREATE PROCEDURE Ejercicio8(IN paisParam VARCHAR(255))
 BEGIN
     DECLARE numCiudadesPais INT;
     
-    IF pPais IS NULL OR pPais = '' THEN
+    IF paisParam IS NULL OR paisParam = '' THEN
         SELECT 'El nombre del país no puede ser nulo o vacío' AS 'ERROR';
-    ELSEIF NOT EXISTS (SELECT 1 FROM Pais WHERE Nombre = pPais) THEN
-        SELECT CONCAT('El país ', pPais, ' no existe') AS 'ERROR';
+    ELSEIF NOT EXISTS (SELECT 1 FROM Pais WHERE Nombre = paisParam) THEN
+        SELECT CONCAT('El país ', paisParam, ' no existe') AS 'ERROR';
     ELSE
-        SET numCiudadesPais = (SELECT COUNT(*) FROM Ciudad c JOIN Pais p ON c.CodigoPais = p.Codigo WHERE p.Nombre = pPais);
+        SET numCiudadesPais = (SELECT COUNT(*) FROM Ciudad JOIN Pais ON Ciudad.CodigoPais = Pais.Codigo WHERE Pais.Nombre = paisParam);
         
-        SELECT p.Nombre AS 'País', COUNT(c.Nombre) AS 'Número de ciudades'
-        FROM Pais p
-        LEFT JOIN Ciudad c ON p.Codigo = c.CodigoPais
-        GROUP BY p.Codigo
-        HAVING COUNT(c.Nombre) > numCiudadesPais;
+        SELECT Pais.Nombre AS 'País', COUNT(Ciudad.Nombre) AS 'Número de ciudades'
+        FROM 	Pais LEFT JOIN Ciudad 
+        ON 		Pais.Codigo = Ciudad.CodigoPais
+        GROUP BY Pais.Codigo
+        HAVING COUNT(Ciudad.Nombre) > numCiudadesPais;
     END IF;
 END //
 
@@ -363,10 +360,10 @@ CALL Ejercicio8('Spain');
 DROP FUNCTION IF EXISTS NumeroPalabras;
 DELIMITER //
 
-CREATE FUNCTION NumeroPalabras(cadena VARCHAR(1000)) RETURNS INT
+CREATE FUNCTION NumeroPalabras(cadena VARCHAR(255)) RETURNS INT
 BEGIN
     DECLARE contador INT DEFAULT 0;
-    DECLARE i INT DEFAULT 1;
+    DECLARE i INT DEFAULT 0;
     DECLARE esPalabra BOOL DEFAULT FALSE;
     DECLARE caracter CHAR(1);
     DECLARE longitud INT;
@@ -377,7 +374,7 @@ BEGIN
     
     SET longitud = CHAR_LENGTH(cadena);
     
-    WHILE i <= longitud DO
+    WHILE i < longitud DO
         SET caracter = SUBSTRING(cadena, i, 1);
         
         IF caracter REGEXP '[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9]' THEN
@@ -404,9 +401,9 @@ SELECT NumeroPalabras('Hola mundo, esto es una prueba');
 DROP FUNCTION IF EXISTS EsPalindromo;
 DELIMITER //
 
-CREATE FUNCTION EsPalindromo(cadena VARCHAR(1000)) RETURNS BOOL
+CREATE FUNCTION EsPalindromo(cadena VARCHAR(255)) RETURNS BOOL
 BEGIN
-    IF cadena IS NULL OR cadena = '' THEN
+    IF cadena IS NULL OR cadena = "" THEN
         RETURN FALSE;
     END IF;
     
@@ -415,39 +412,33 @@ END //
 
 DELIMITER ;
 
-SELECT EsPalindromo('radar'), EsPalindromo('hola');
+SELECT EsPalindromo('radar'), EsPalindromo("recognizing"), EsPalindromo("rotor"), EsPalindromo('hola');
 
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 11. Crea una función que nos indique si la cadena introducida es palíndromo. Entendemos como palíndromos:  radar, recognizing, rotor, salas, seres, etc. USA un bucle y la funión SUBSTR() para comprobar el carácter de una posición concreta en la cadena.
 DROP FUNCTION IF EXISTS EsPalindromo2;
 DELIMITER //
 
-CREATE FUNCTION EsPalindromo2(cadena VARCHAR(1000)) RETURNS BOOL
+CREATE FUNCTION EsPalindromo2(cadena VARCHAR(255)) RETURNS BOOL
 BEGIN
-    DECLARE i INT DEFAULT 1;
     DECLARE j INT;
-    DECLARE caracterInicio CHAR(1);
-    DECLARE caracterFin CHAR(1);
+    DECLARE cadenaAlReves VARCHAR(255) DEFAULT "";
     
-    IF cadena IS NULL OR cadena = '' THEN
+
+    
+    IF cadena IS NULL OR cadena = "" THEN
         RETURN FALSE;
     END IF;
     
     SET j = CHAR_LENGTH(cadena);
     
-    WHILE i <= j DO
-        SET caracterInicio = SUBSTRING(cadena, i, 1);
-        SET caracterFin = SUBSTRING(cadena, j, 1);
+    WHILE j >= 1 DO
+		SET cadenaAlReves = CONCAT(cadenaAlReves, SUBSTRING(cadena, j, 1));
         
-        IF caracterInicio != caracterFin THEN
-            RETURN FALSE;
-        END IF;
-        
-        SET i = i + 1;
         SET j = j - 1;
     END WHILE;
     
-    RETURN TRUE;
+    RETURN cadena = cadenaAlReves;
 END //
 
 DELIMITER ;
@@ -459,40 +450,34 @@ SELECT EsPalindromo2('radar'), EsPalindromo2('hola');
 DROP FUNCTION IF EXISTS EsPalindromo3;
 DELIMITER //
 
-CREATE FUNCTION EsPalindromo3(cadena VARCHAR(1000)) RETURNS BOOL
+CREATE FUNCTION EsPalindromo3(cadena VARCHAR(255)) RETURNS BOOL
 BEGIN
-    DECLARE cadenaLimpia VARCHAR(1000);
-    DECLARE i INT DEFAULT 1;
-    DECLARE j INT;
-    DECLARE caracterInicio CHAR(1);
-    DECLARE caracterFin CHAR(1);
+    DECLARE cadenaLimpia VARCHAR(255);
+    DECLARE caracter CHAR(1);
+    DECLARE i INT;
     
     IF cadena IS NULL OR cadena = '' THEN
         RETURN FALSE;
     END IF;
     
-    SET cadenaLimpia = '';
-    WHILE i <= CHAR_LENGTH(cadena) DO
-        SET caracterInicio = LOWER(SUBSTRING(cadena, i, 1));
-        IF caracterInicio REGEXP '[a-záéíóúñ0-9]' THEN
-            SET cadenaLimpia = CONCAT(cadenaLimpia, caracterInicio);
-        END IF;
-        SET i = i + 1;
-    END WHILE;
     
-    SET j = CHAR_LENGTH(cadenaLimpia);
+   SET cadenaLimpia = "";
+   SET i =1;
+	WHILE i <= CHAR_LENGTH(cadena) DO
+		SET caracter = LOWER(SUBSTRING(cadena, i, 1));
+		IF caracter REGEXP '[a-záéíóúñ0-9]' THEN
+			SET cadenaLimpia = CONCAT(cadenaLimpia, caracter);
+		END IF;
+		SET i = i + 1;
+	END WHILE;
+
     SET i = 1;
-    
-    WHILE i <= j DO
-        SET caracterInicio = SUBSTRING(cadenaLimpia, i, 1);
-        SET caracterFin = SUBSTRING(cadenaLimpia, j, 1);
-        
-        IF caracterInicio != caracterFin THEN
-            RETURN FALSE;
+    WHILE i <= CHAR_LENGTH(cadenaLimpia) / 2 DO
+		IF SUBSTRING(cadenaLimpia, i, 1) != SUBSTRING(cadenaLimpia, CHAR_LENGTH(cadenaLimpia) + 1 - i, 1) 
+			THEN RETURN FALSE;
         END IF;
         
         SET i = i + 1;
-        SET j = j - 1;
     END WHILE;
     
     RETURN TRUE;
@@ -500,7 +485,7 @@ END //
 
 DELIMITER ;
 
-SELECT EsPalindromo3('Añora la Roña'), EsPalindromo3('La ruta natural');
+SELECT EsPalindromo3('Añora la Roña'), EsPalindromo3('La ruta natural'), EsPalindromo3("hola");
 
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 13. Crea una fución que nos indique si el número que le pasamos como parámetro es primo. un número primo es un número natural mayor que 1 que tiene únicamente dos divisores distintos: él mismo y el 1. 
@@ -561,14 +546,16 @@ BEGIN
         
         IF contador = vPosicion THEN
             INSERT INTO PosicionesCiudades VALUES(vPosicion, vNombre, vPoblacion);
-            SET vPosicion = vPosicion + 10;
+            
+            IF vPosicion = 1 
+				THEN SET vPosicion = 10; 
+				ELSE SET vPosicion = vPosicion + 10; 
+            END IF;
         END IF;
         
         SET contador = contador + 1;
         
-        IF vPosicion > 1000 THEN
-            LEAVE Bucle;
-        END IF;
+        IF vPosicion > 1000 THEN LEAVE Bucle; END IF;
     END LOOP Bucle;
     
     CLOSE curCiudades;
@@ -590,8 +577,8 @@ CREATE PROCEDURE Ejercicio15()
 BEGIN
     DECLARE vNombre VARCHAR(255);
     DECLARE vAnyIndep INT;
-    DECLARE vPNB DECIMAL(10,2);
-    DECLARE vPNBAnterior DECIMAL(10,2) DEFAULT NULL;
+    DECLARE vPNB FLOAT(10,2);
+    DECLARE vPNBAnterior FLOAT(10,2) DEFAULT NULL;
     DECLARE finCur BOOL DEFAULT FALSE;
     
     DECLARE curPaises CURSOR FOR
@@ -602,7 +589,7 @@ BEGIN
     CREATE TEMPORARY TABLE IF NOT EXISTS PaisesPNB (
         Nombre VARCHAR(255),
         AnyoIndependencia INT,
-        PNB DECIMAL(10,2),
+        PNB FLOAT(10,2),
         VariacionPNB VARCHAR(10)
     ) ENGINE = MEMORY;
     
@@ -973,7 +960,7 @@ Número deficiente: todo número natural que cumple que la suma de sus divisores
 */-- --------------------------------------------------------------------------------------
 -- Ejercicio 31. Crea subprograma que nos indique si un número es apocalíptico:
 /*
-Número apocalíptico: todo número natural n que cumple que 2^n contiene la secuencia 666. Por ejemplo, los números 157 y 192 son números apocalípticos.  Nota: el número 2^192 es tan grande que aunque es apocalíptico, MySQL dice que no lo es, incluso aunque se declaren las variables como DECIMAL(65)
+Número apocalíptico: todo número natural n que cumple que 2^n contiene la secuencia 666. Por ejemplo, los números 157 y 192 son números apocalípticos.  Nota: el número 2^192 es tan grande que aunque es apocalíptico, MySQL dice que no lo es, incluso aunque se declaren las variables como FLOAT(65)
 */-- --------------------------------------------------------------------------------------
 -- Ejercicio 32. Crea un subprograma que nos saque por pantalla los números apocalípticos comprendidos entre un rango de números que le pasaremos como parámetro
 -- --------------------------------------------------------------------------------------

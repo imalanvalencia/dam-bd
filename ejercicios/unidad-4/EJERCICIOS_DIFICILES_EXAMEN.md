@@ -536,3 +536,128 @@ END
 | 33 | Procedimiento | WHILE + INSERT |
 | 34 | Función | WHILE hasta llegar a 1 |
 | 35 | Procedimiento | Criba modificada |
+
+---
+
+## 📝 Ejercicio 22 - Suma de dígitos con cursor
+
+**Enunciado:** Calcula la suma de todos los dígitos de todos los números presentes en una tabla.
+
+### Solución con cursor
+
+```sql
+-- Tabla de prueba
+CREATE TABLE Numeros (numero INT);
+INSERT INTO Numeros VALUES (12), (33), (67);  -- Resultado: 22
+
+-- Función auxiliar: suma los dígitos de un número
+CREATE FUNCTION SumaDigitosNumero(numero INT) RETURNS INT
+BEGIN
+    DECLARE suma INT DEFAULT 0;
+    DECLARE digito INT;
+    
+    WHILE numero > 0 DO
+        SET digito = numero % 10;
+        SET suma = suma + digito;
+        SET numero = numero DIV 10;  -- IMPORTANTE: usar DIV, no /
+    END WHILE;
+    
+    RETURN suma;
+END
+
+-- Procedimiento con cursor
+CREATE PROCEDURE Ejercicio22()
+BEGIN
+    DECLARE vNumero INT;
+    DECLARE sumaTotal INT DEFAULT 0;
+    DECLARE finCur BOOL DEFAULT FALSE;
+    
+    DECLARE curNumeros CURSOR FOR SELECT numero FROM Numeros;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET finCur = TRUE;
+    
+    OPEN curNumeros;
+    
+    Bucle: LOOP
+        FETCH curNumeros INTO vNumero;
+        IF finCur THEN LEAVE Bucle; END IF;
+        
+        SET sumaTotal = sumaTotal + SumaDigitosNumero(vNumero);
+    END LOOP Bucle;
+    
+    CLOSE curNumeros;
+    
+    SELECT sumaTotal AS 'Suma total de digitos';
+END
+```
+
+**Clave:** El cursor itera sobre los números, y para cada uno llama a la función `SumaDigitosNumero`.
+
+---
+
+## 📝 Ejercicio 23 - Conteo de letras con cursor
+
+**Enunciado:** Dada una tabla de palabras, contar cuántas veces aparece cada letra del abecedario.
+
+### Solución con cursor
+
+```sql
+-- Tablas de prueba
+CREATE TABLE Palabras (id INT PRIMARY KEY, palabra VARCHAR(255));
+INSERT INTO Palabras VALUES (1,'Hola'), (2,'Mundo');
+
+CREATE TABLE Letras (letra CHAR(1) PRIMARY KEY);
+INSERT INTO Letras VALUES ('a'),('b'),('c'),...;
+
+CREATE PROCEDURE Ejercicio23()
+BEGIN
+    DECLARE vPalabra VARCHAR(255);
+    DECLARE vCaracter CHAR(1);
+    DECLARE finCurPalabras BOOL DEFAULT FALSE;
+    
+    -- Cursor para las palabras
+    DECLARE curPalabras CURSOR FOR SELECT palabra FROM Palabras;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET finCurPalabras = TRUE;
+    
+    -- Tabla resultado
+    CREATE TABLE ConteoLetras (
+        letra CHAR(1),
+        cantidad INT DEFAULT 0,
+        PRIMARY KEY (letra)
+    );
+    
+    -- Inicializar con todas las letras
+    INSERT INTO ConteoLetras SELECT letra, 0 FROM Letras;
+    
+    OPEN curPalabras;
+    
+    BuclePalabras: LOOP
+        FETCH curPalabras INTO vPalabra;
+        IF finCurPalabras THEN LEAVE BuclePalabras; END IF;
+        
+        -- Procesar cada carácter de la palabra
+        WHILE CHAR_LENGTH(vPalabra) > 0 DO
+            SET vCaracter = LOWER(LEFT(vPalabra, 1));
+            
+            IF vCaracter REGEXP '[a-z]' THEN
+                UPDATE ConteoLetras SET cantidad = cantidad + 1 WHERE letra = vCaracter;
+            END IF;
+            
+            SET vPalabra = SUBSTRING(vPalabra, 2);
+        END WHILE;
+    END LOOP BuclePalabras;
+    
+    CLOSE curPalabras;
+    
+    SELECT * FROM ConteoLetras ORDER BY cantidad DESC;
+END
+```
+
+**Clave:** Cursor para las palabras + WHILE anidado para procesar cada carácter.
+
+---
+
+## ⚠️ Errores comunes a evitar
+
+1. **División entera:** Usar `numero / 10` en vez de `numero DIV 10`
+2. **Orden DECLARE:** Variables → Cursors → Handlers → Código
+3. **FETCH sin verificar fin:** Siempre verificar `IF finCur THEN LEAVE` después del FETCH

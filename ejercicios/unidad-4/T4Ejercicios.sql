@@ -169,7 +169,6 @@ BEGIN
                 SET j = j + 1;
             END WHILE;
             
-            SELECT aInsertar;
             INSERT INTO CadenaTabla VALUES(aInsertar);
             
             SET i = i + 1;
@@ -577,20 +576,20 @@ CREATE PROCEDURE Ejercicio15()
 BEGIN
     DECLARE vNombre VARCHAR(255);
     DECLARE vAnyIndep INT;
-    DECLARE vPNB FLOAT(10,2);
-    DECLARE vPNBAnterior FLOAT(10,2) DEFAULT NULL;
+    DECLARE vPNB DECIMAL(10,2);
+    DECLARE vPNBAnterior DECIMAL(10,2) DEFAULT NULL;
     DECLARE finCur BOOL DEFAULT FALSE;
     
-    DECLARE curPaises CURSOR FOR
-        SELECT Nombre, AnyIndep, PNB FROM Pais WHERE AnyIndep IS NOT NULL ORDER BY AnyIndep ASC;
+	DECLARE curPaises CURSOR FOR
+		SELECT Nombre, AnyIndep, PNB FROM Pais WHERE AnyIndep IS NOT NULL ORDER BY AnyIndep ASC;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET finCur = TRUE;
     
     CREATE TEMPORARY TABLE IF NOT EXISTS PaisesPNB (
         Nombre VARCHAR(255),
         AnyoIndependencia INT,
-        PNB FLOAT(10,2),
-        VariacionPNB VARCHAR(10)
+        PNB DECIMAL(10,2),
+        VariacionPNB VARCHAR(255)
     ) ENGINE = MEMORY;
     
     OPEN curPaises;
@@ -602,7 +601,7 @@ BEGIN
         IF vPNBAnterior IS NULL OR vPNB IS NULL THEN
             INSERT INTO PaisesPNB VALUES(vNombre, vAnyIndep, vPNB, 'n/a');
         ELSE
-            INSERT INTO PaisesPNB VALUES(vNombre, vAnyIndep, vPNB, CONCAT(vPNB - vPNBAnterior));
+            INSERT INTO PaisesPNB VALUES(vNombre, vAnyIndep, vPNB, CONCAT(ROUND(vPNB - vPNBAnterior, 2)));
         END IF;
         
         SET vPNBAnterior = vPNB;
@@ -622,8 +621,8 @@ CALL Ejercicio15();
 -- Ejercicio 16. Vamos a añadir un campo a la tabla país que indique la suma de la población de sus ciudades, actualizaremos este campo con los valores reales, añadiremos también los diparadores necesarios para mantener este nuevo campo actualizado antes modificaciones de la tabla de ciudades e incluiremos el código necesario para probarlo todo.
 ALTER TABLE Pais ADD COLUMN PoblacionTotal INT DEFAULT 0;
 
-UPDATE Pais p SET PoblacionTotal = (
-    SELECT COALESCE(SUM(Poblacion), 0) FROM Ciudad c WHERE c.CodigoPais = p.Codigo
+UPDATE Pais SET PoblacionTotal = (
+    SELECT COALESCE(SUM(Poblacion), 0) FROM Ciudad WHERE Ciudad.CodigoPais = Pais.Codigo
 );
 
 DROP TRIGGER IF EXISTS AfterCiudadInsert;
@@ -742,7 +741,7 @@ BEGIN
     SELECT CodigoPais AS 'Código de País', COUNT(*) AS 'Cantidad de Ciudades'
     FROM Ciudad
     GROUP BY CodigoPais
-    HAVING COUNT(*) >= 4
+    HAVING COUNT(*) >= 4 
     ORDER BY COUNT(*) DESC;
 END //
 
@@ -788,14 +787,14 @@ BEGIN
         ) ENGINE = MEMORY;
         
         INSERT INTO CiudadPais
-        SELECT p.Codigo, p.Nombre
-        FROM Pais p
+        SELECT Pais.Codigo, Pais.Nombre
+        FROM Pais
         JOIN (
             SELECT CodigoPais, COUNT(*) AS num
             FROM Ciudad
             GROUP BY CodigoPais
             HAVING num >= minimo
-        ) c ON p.Codigo = c.CodigoPais;
+        ) sub ON Pais.Codigo = sub.CodigoPais;
         
         SELECT * FROM CiudadPais;
         DROP TABLE IF EXISTS CiudadPais;
@@ -822,14 +821,14 @@ BEGIN
         ) ENGINE = MEMORY;
         
         INSERT INTO CiudadPais
-        SELECT p.Codigo, p.Nombre
-        FROM Pais p
+        SELECT Pais.Codigo, Pais.Nombre
+        FROM Pais
         JOIN (
             SELECT CodigoPais, COUNT(*) AS num
             FROM Ciudad
             GROUP BY CodigoPais
             HAVING num >= minimo
-        ) c ON p.Codigo = c.CodigoPais;
+        ) sub ON Pais.Codigo = sub.CodigoPais;
         
         SELECT * FROM CiudadPais;
         DROP TABLE IF EXISTS CiudadPais;
@@ -842,6 +841,16 @@ CALL Ejercicio21(2);
 
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 22. Calcula la suma de todos los dígitos de todos los número presentes en una base de datos de números enteros positivos. Para probar el algoritmo llenaremos la BD con números enteros aleatorios positivos. Por ejemplo, si la base de datos contiene los número 12, 33 y 67 el resultado será 1+2 + 3+3 + 6+7= 22.
+
+-- Tabla de prueba
+DROP TABLE IF EXISTS Numeros;
+CREATE TABLE Numeros (
+    numero INT PRIMARY KEY
+);
+
+INSERT INTO Numeros VALUES (12), (33), (67);
+
+-- Función auxiliar: suma los dígitos de un número
 DROP FUNCTION IF EXISTS SumaDigitosNumero;
 DELIMITER //
 
@@ -865,8 +874,40 @@ END //
 
 DELIMITER ;
 
+-- Procedimiento con cursor
+DROP PROCEDURE IF EXISTS Ejercicio22;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio22()
+BEGIN
+    DECLARE vNumero INT;
+    DECLARE sumaTotal INT DEFAULT 0;
+    DECLARE finCur BOOL DEFAULT FALSE;
+    
+    DECLARE curNumeros CURSOR FOR SELECT numero FROM Numeros;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET finCur = TRUE;
+    
+    OPEN curNumeros;
+    
+    Bucle: LOOP
+        FETCH curNumeros INTO vNumero;
+        IF finCur THEN LEAVE Bucle; END IF;
+        
+        SET sumaTotal = sumaTotal + SumaDigitosNumero(vNumero);
+    END LOOP Bucle;
+    
+    CLOSE curNumeros;
+    
+    SELECT sumaTotal AS 'Suma total de digitos';
+END //
+
+DELIMITER ;
+
+CALL Ejercicio22();
+
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 23. Dada una BD de palabras, realiza un procedimiento que guarde en otra tabla con las letras del abecedario el número de apariciones de cada letra. Todas las letras se pasarán a minúsculas. No se tendrán en cuenta los caracteres que aparezcan en las palabras pero que no estén en la tabla Letras.
+
 DROP TABLE IF EXISTS Palabras;
 CREATE TABLE Palabras (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -890,11 +931,16 @@ DELIMITER //
 
 CREATE PROCEDURE Ejercicio23()
 BEGIN
-    DECLARE i INT DEFAULT 1;
-    DECLARE palabraActual VARCHAR(255);
-    DECLARE caracter CHAR(1);
-    DECLARE numPalabras INT;
+    DECLARE vPalabra VARCHAR(255);
+    DECLARE vCaracter CHAR(1);
+    DECLARE finCurPalabras BOOL DEFAULT FALSE;
+    DECLARE finCurLetras BOOL DEFAULT FALSE;
     
+    -- Cursor para recorrer las palabras
+    DECLARE curPalabras CURSOR FOR SELECT palabra FROM Palabras;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET finCurPalabras = TRUE;
+    
+    -- Tabla de resultado
     DROP TABLE IF EXISTS ConteoLetras;
     CREATE TABLE ConteoLetras (
         letra CHAR(1),
@@ -902,31 +948,36 @@ BEGIN
         PRIMARY KEY (letra)
     );
     
+    -- Inicializar tabla con todas las letras
     INSERT INTO ConteoLetras (letra, cantidad)
     SELECT letra, 0 FROM Letras;
     
-    SET numPalabras = (SELECT COUNT(*) FROM Palabras);
+    OPEN curPalabras;
     
-    WHILE i <= numPalabras DO
-        SET palabraActual = (SELECT palabra FROM Palabras WHERE id = i);
+    BuclePalabras: LOOP
+        FETCH curPalabras INTO vPalabra;
+        IF finCurPalabras THEN LEAVE BuclePalabras; END IF;
         
-        WHILE CHAR_LENGTH(palabraActual) > 0 DO
-            SET caracter = LOWER(LEFT(palabraActual, 1));
+        -- Procesar cada carácter de la palabra
+        WHILE CHAR_LENGTH(vPalabra) > 0 DO
+            SET vCaracter = LOWER(LEFT(vPalabra, 1));
             
-            IF caracter REGEXP '[a-z]' THEN
-                UPDATE ConteoLetras SET cantidad = cantidad + 1 WHERE letra = caracter;
+            IF vCaracter REGEXP '[a-z]' THEN
+                UPDATE ConteoLetras SET cantidad = cantidad + 1 WHERE letra = vCaracter;
             END IF;
             
-            SET palabraActual = SUBSTRING(palabraActual, 2);
+            SET vPalabra = SUBSTRING(vPalabra, 2);
         END WHILE;
-        
-        SET i = i + 1;
-    END WHILE;
+    END LOOP BuclePalabras;
+    
+    CLOSE curPalabras;
     
     SELECT * FROM ConteoLetras ORDER BY cantidad DESC;
 END //
 
 DELIMITER ;
+
+
 
 CALL Ejercicio23();
 
@@ -995,17 +1046,26 @@ CREATE PROCEDURE Ejercicio25(IN inicio INT, IN fin INT)
 BEGIN
     DECLARE i INT;
     
+CREATE TEMPORARY TABLE IF NOT EXISTS NumerosPerfectos (
+            numero INT PRIMARY KEY
+        ) ENGINE = MEMORY;
+
     IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
         SELECT 'Los parámetros no son válidos' AS 'ERROR';
     ELSE
+      
+  
         SET i = inicio;
         WHILE i <= fin DO
             IF EsPerfecto(i) THEN
-                SELECT i AS 'Número Perfecto';
+                INSERT INTO NumerosPerfectos VALUES (i);
             END IF;
             SET i = i + 1;
         END WHILE;
     END IF;
+
+    SELECT numero AS "Numeros Perfectos" FROM NumerosPerfectos;
+    DROP TABLE IF EXISTS NumerosPerfectos;
 END //
 
 DELIMITER ;
@@ -1044,7 +1104,7 @@ END //
 
 DELIMITER ;
 
-CALL Ejercicio26(1, 10000);
+CALL Ejercicio26(1, 100);
 
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 27.  Crea subprograma que nos indique si un número es abundante:
@@ -1288,7 +1348,7 @@ BEGIN
     WHILE numero > 0 DO
         SET digito = numero % 10;
         SET suma = suma + (digito * digito);
-        SET numero = numero DIV 10;
+        SET numero = numero / 10;
     END WHILE;
     
     RETURN suma;

@@ -262,3 +262,277 @@ BEGIN
     -- NEW solo en INSERT/UPDATE
 END
 ```
+
+---
+
+# 📚 Ejercicios 24-35: Matemática Recreativa
+
+Todos estos ejercicios siguen un patrón similar. Acá te explico cada uno:
+
+---
+
+## 📝 Ejercicio 24 - Número Perfecto
+
+**Definición:** Número natural igual a la suma de sus divisores propios.
+- Ejemplos: 6 (1+2+3), 28, 496, 8128
+
+### Función auxiliar (se usa en varios ejercicios)
+
+```sql
+CREATE FUNCTION SumaDivisores(numero INT) RETURNS INT
+BEGIN
+    DECLARE suma INT DEFAULT 0;
+    DECLARE i INT DEFAULT 1;
+    
+    WHILE i < numero DO
+        IF numero % i = 0 THEN
+            SET suma = suma + i;
+        END IF;
+        SET i = i + 1;
+    END WHILE;
+    
+    RETURN suma;
+END
+```
+
+### Función: ¿Es perfecto?
+
+```sql
+CREATE FUNCTION EsPerfecto(numero INT) RETURNS BOOL
+BEGIN
+    RETURN SumaDivisores(numero) = numero;
+END
+```
+
+**Lógica:** `SumaDivisores(n) = n` → es perfecto
+
+---
+
+## 📝 Ejercicio 25 - Mostrar perfectos en rango
+
+```sql
+CREATE PROCEDURE MostrarPerfectos(inicio INT, fin INT)
+BEGIN
+    DECLARE i INT DEFAULT inicio;
+    
+    WHILE i <= fin DO
+        IF EsPerfecto(i) THEN
+            SELECT i AS 'Número Perfecto';
+        END IF;
+        SET i = i + 1;
+    END WHILE;
+END
+```
+
+---
+
+## 📝 Ejercicio 26 - Guardar perfectos en tabla
+
+Igual que el 25 pero con `INSERT INTO tabla VALUES (i)` en vez de SELECT.
+
+---
+
+## 📝 Ejercicio 27 - Número Abundante
+
+**Definición:** Suma de divisores propios > número
+- Ejemplo: 12 → 1+2+3+4+6 = 16 > 12 ✓
+
+```sql
+CREATE FUNCTION EsAbundante(numero INT) RETURNS BOOL
+BEGIN
+    RETURN SumaDivisores(numero) > numero;
+END
+```
+
+**Lógica:** `SumaDivisores(n) > n` → es abundante
+
+---
+
+## 📝 Ejercicio 28 - Mostrar abundantes en rango
+
+Igual que ejercicio 25 pero usando `EsAbundante()`.
+
+---
+
+## 📝 Ejercicio 29 - Guardar abundantes en tabla
+
+Igual que ejercicio 26 pero usando `EsAbundante()`.
+
+---
+
+## 📝 Ejercicio 30 - Número Deficiente
+
+**Definición:** Suma de divisores propios < número
+- Ejemplo: 16 → 1+2+4+8 = 15 < 16 ✓
+
+```sql
+CREATE FUNCTION EsDeficiente(numero INT) RETURNS BOOL
+BEGIN
+    RETURN SumaDivisores(numero) < numero;
+END
+```
+
+**Lógica:** `SumaDivisores(n) < n` → es deficiente
+
+---
+
+## 📝 Ejercicio 31 - Número Apocalíptico
+
+**Definición:** 2^n contiene la secuencia "666"
+- Ejemplos: 157, 192
+
+```sql
+CREATE FUNCTION EsApocaliptico(n INT) RETURNS BOOL
+BEGIN
+    DECLARE potencia VARCHAR(1000);
+    
+    SET potencia = CAST(POW(2, n) AS CHAR);
+    
+    RETURN INSTR(potencia, '666') > 0;
+END
+```
+
+**Clave:** `POW(2,n)` → `CAST(... AS CHAR)` → `INSTR(..., '666')`
+
+---
+
+## 📝 Ejercicio 32 - Mostrar apocalípticos en rango
+
+Igual que ejercicio 25 pero usando `EsApocaliptico()`.
+
+---
+
+## 📝 Ejercicio 33 - Guardar apocalípticos en tabla
+
+Igual que ejercicio 26 pero usando `EsApocaliptico()`.
+
+---
+
+## 📝 Ejercicio 34 - Números Felices/Infelices
+
+**Número feliz:** Sumar cuadrados de dígitos hasta llegar a 1
+- 203 → 2²+0²+3² = 13 → 1²+3² = 10 → 1²+0² = 1 ✓ FELIZ
+
+**Número infeliz:** No llega a 1 (entra en ciclo)
+- 16 → 37 → 58 → 89 → 145 → 42 → 20 → 4 → 16... (ciclo) ✗ INFELIZ
+
+### Función: Suma de cuadrados de dígitos
+
+```sql
+CREATE FUNCTION SumaCuadradosDigitos(numero INT) RETURNS INT
+BEGIN
+    DECLARE suma INT DEFAULT 0;
+    DECLARE digito INT;
+    
+    WHILE numero > 0 DO
+        SET digito = numero % 10;
+        SET suma = suma + (digito * digito);
+        SET numero = numero DIV 10;
+    END WHILE;
+    
+    RETURN suma;
+END
+```
+
+### Función: ¿Es feliz?
+
+```sql
+CREATE FUNCTION EsFeliz(n INT) RETURNS BOOL
+BEGIN
+    DECLARE actual INT;
+    DECLARE visited VARCHAR(1000);
+    
+    SET actual = n;
+    SET visited = '';
+    
+    WHILE actual != 1 AND INSTR(visited, CONCAT(actual, ',')) = 0 DO
+        SET visited = CONCAT(visited, actual, ',');
+        SET actual = SumaCuadradosDigitos(actual);
+    END WHILE;
+    
+    RETURN actual = 1;
+END
+```
+
+**Clave:** Se usa un string `visited` para detectar ciclos.
+
+---
+
+## 📝 Ejercicio 35 - Números Afortunados
+
+**Algoritmo (Criba modificada):**
+```
+1. Lista: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15...
+2. Tachar posiciones PARES: 1, 3, 5, 7, 9, 11, 13, 15...
+3. El 2do número que quedó es 3 → tachar múltiplos de 3
+4. El siguiente es 7 → tachar múltiplos de 7
+5. Y así sucesivamente
+```
+
+Los que sobreviven = números afortunados.
+
+```sql
+CREATE PROCEDURE Ejercicio35(maximo INT)
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE contador INT DEFAULT 1;
+    DECLARE posicionActual INT;
+    
+    -- Tabla temporal para la criba
+    CREATE TABLE CribaTemporal (
+        numero INT PRIMARY KEY,
+        eliminado BOOL DEFAULT FALSE
+    );
+    
+    -- Llenar con números 1 a maximo
+    WHILE i <= maximo DO
+        INSERT INTO CribaTemporal VALUES (i, FALSE);
+        SET i = i + 1;
+    END WHILE;
+    
+    -- Tachar pares (posiciones 2, 4, 6...)
+    UPDATE CribaTemporal SET eliminado = TRUE 
+    WHERE numero % 2 = 0;
+    
+    -- Para cada número no eliminado, tachar sus múltiplos
+    SET contador = 3;  -- Empezamos desde 3
+    WHILE contador <= maximo DO
+        -- Verificar si contador no está eliminado
+        IF (SELECT COUNT(*) FROM CribaTemporal 
+            WHERE numero = contador AND NOT eliminado) > 0 THEN
+            -- Tachar múltiplos de contador
+            SET i = contador * 2;
+            WHILE i <= maximo DO
+                UPDATE CribaTemporal SET eliminado = TRUE 
+                WHERE numero = i;
+                SET i = i + contador;
+            END WHILE;
+        END IF;
+        SET contador = contador + 1;
+    END WHILE;
+    
+    -- Los no eliminados son afortunados
+    SELECT * FROM CribaTemporal WHERE NOT eliminado;
+    
+    DROP TABLE CribaTemporal;
+END
+```
+
+---
+
+## 📋 Resumen - Ejercicios 24-35
+
+| # | Tipo | Concepto clave |
+|---|------|----------------|
+| 24 | Función | `SumaDivisores(n) = n` |
+| 25 | Procedimiento | WHILE + función 24 |
+| 26 | Procedimiento | WHILE + INSERT |
+| 27 | Función | `SumaDivisores(n) > n` |
+| 28 | Procedimiento | WHILE + función 27 |
+| 29 | Procedimiento | WHILE + INSERT |
+| 30 | Función | `SumaDivisores(n) < n` |
+| 31 | Función | `POW(2,n)` + `INSTR(...)` |
+| 32 | Procedimiento | WHILE + función 31 |
+| 33 | Procedimiento | WHILE + INSERT |
+| 34 | Función | WHILE hasta llegar a 1 |
+| 35 | Procedimiento | Criba modificada |

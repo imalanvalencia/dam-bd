@@ -938,41 +938,509 @@ CALL Ejercicio23();
 -- http://oeis.org/A000959
 -- Proyecto Euler. Muy interesante para problemas matemáticos: https://projecteuler.net/about cuenta creada con leonomis
 -- --------------------------------------------------------------------------------------
+-- --------------------------------------------------------------------------------------
 -- Ejercicio 24. Crea subprograma (procedimiento o función alamacenados) que nos indique si un número es perfecto:
 /*
 Número perfecto: todo número natural que es igual a la suma de sus divisores propios (es decir, todos sus divisores excepto el propio número). Por ejemplo, 6 es un número perfecto ya que sus divisores propios son 1, 2, y 3 y se cumple que 1+2+3=6. Los números 28, 496 y 8128 también son perfectos.
-*/-- --------------------------------------------------------------------------------------
+*/
+
+-- Función auxiliar para sumar divisores propios
+DROP FUNCTION IF EXISTS SumaDivisores;
+DELIMITER //
+
+CREATE FUNCTION SumaDivisores(numero INT) RETURNS INT
+BEGIN
+    DECLARE suma INT DEFAULT 0;
+    DECLARE i INT DEFAULT 1;
+    
+    IF numero IS NULL OR numero <= 0 THEN
+        RETURN 0;
+    END IF;
+    
+    WHILE i < numero DO
+        IF numero % i = 0 THEN
+            SET suma = suma + i;
+        END IF;
+        SET i = i + 1;
+    END WHILE;
+    
+    RETURN suma;
+END //
+
+DELIMITER ;
+
+-- Función: ¿Es número perfecto?
+DROP FUNCTION IF EXISTS EsPerfecto;
+DELIMITER //
+
+CREATE FUNCTION EsPerfecto(numero INT) RETURNS BOOL
+BEGIN
+    IF numero IS NULL OR numero <= 0 THEN
+        RETURN FALSE;
+    END IF;
+    
+    RETURN SumaDivisores(numero) = numero;
+END //
+
+DELIMITER ;
+
+SELECT EsPerfecto(6), EsPerfecto(28), EsPerfecto(12);
+
+-- --------------------------------------------------------------------------------------
 -- Ejercicio 25. Crea un subprograma que nos saque por pantalla los números perfectos comprendidos entre un rango de números que le pasaremos como parámetro
+DROP PROCEDURE IF EXISTS Ejercicio25;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio25(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsPerfecto(i) THEN
+                SELECT i AS 'Número Perfecto';
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio25(1, 500);
+
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 26. Crea un subprograma que alamacene en una tabla los números perfectos comprendidos entre un rango de números que le pasaremos como parámetro
+DROP TABLE IF EXISTS NumerosPerfectos;
+CREATE TABLE NumerosPerfectos (
+    numero INT PRIMARY KEY
+);
+
+DROP PROCEDURE IF EXISTS Ejercicio26;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio26(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        TRUNCATE TABLE NumerosPerfectos;
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsPerfecto(i) THEN
+                INSERT INTO NumerosPerfectos VALUES (i);
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+        
+        SELECT * FROM NumerosPerfectos;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio26(1, 10000);
+
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 27.  Crea subprograma que nos indique si un número es abundante:
 /*
 Número abundante: todo número natural que cumple que la suma de sus divisores propios es mayor que el propio número. Por ejemplo, 12 es abundante ya que sus divisores son 1, 2, 3, 4 y 6 y se cumple que 1+2+3+4+6=16, que es mayor que el propio 12.
-*/-- --------------------------------------------------------------------------------------
+*/
+DROP FUNCTION IF EXISTS EsAbundante;
+DELIMITER //
+
+CREATE FUNCTION EsAbundante(numero INT) RETURNS BOOL
+BEGIN
+    IF numero IS NULL OR numero <= 0 THEN
+        RETURN FALSE;
+    END IF;
+    
+    RETURN SumaDivisores(numero) > numero;
+END //
+
+DELIMITER ;
+
+SELECT EsAbundante(12), EsAbundante(6), EsAbundante(18);
+
+-- --------------------------------------------------------------------------------------
 -- Ejercicio 28. Crea un subprograma que nos saque por pantalla los números abundantes comprendidos entre un rango de números que le pasaremos como parámetro
+DROP PROCEDURE IF EXISTS Ejercicio28;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio28(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsAbundante(i) THEN
+                SELECT i AS 'Número Abundante', SumaDivisores(i) AS 'Suma de divisores';
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio28(1, 30);
+
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 29. Crea un subprograma que alamacene en una tabla los números abundantes comprendidos entre un rango de números que le pasaremos como parámetro
+DROP TABLE IF EXISTS NumerosAbundantes;
+CREATE TABLE NumerosAbundantes (
+    numero INT PRIMARY KEY,
+    sumaDivisores INT
+);
+
+DROP PROCEDURE IF EXISTS Ejercicio29;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio29(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        TRUNCATE TABLE NumerosAbundantes;
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsAbundante(i) THEN
+                INSERT INTO NumerosAbundantes VALUES (i, SumaDivisores(i));
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+        
+        SELECT * FROM NumerosAbundantes;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio29(1, 100);
+
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 30. Crea un subprograma que alamacene en una tabla los números deficientes comprendidos entre un rango de números que le pasaremos como parámetro
 /*
 Número deficiente: todo número natural que cumple que la suma de sus divisores propios es menor que el propio número. Por ejemplo, 16 es un número deficiente ya que sus divisores propios son 1, 2, 4 y 8 y se cumple que 1+2+4+8=15, que es menor que 16.
-*/-- --------------------------------------------------------------------------------------
+*/
+DROP FUNCTION IF EXISTS EsDeficiente;
+DELIMITER //
+
+CREATE FUNCTION EsDeficiente(numero INT) RETURNS BOOL
+BEGIN
+    IF numero IS NULL OR numero <= 0 THEN
+        RETURN FALSE;
+    END IF;
+    
+    RETURN SumaDivisores(numero) < numero;
+END //
+
+DELIMITER ;
+
+DROP TABLE IF EXISTS NumerosDeficientes;
+CREATE TABLE NumerosDeficientes (
+    numero INT PRIMARY KEY,
+    sumaDivisores INT
+);
+
+DROP PROCEDURE IF EXISTS Ejercicio30;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio30(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        TRUNCATE TABLE NumerosDeficientes;
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsDeficiente(i) THEN
+                INSERT INTO NumerosDeficientes VALUES (i, SumaDivisores(i));
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+        
+        SELECT * FROM NumerosDeficientes;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio30(1, 30);
+
+-- --------------------------------------------------------------------------------------
 -- Ejercicio 31. Crea subprograma que nos indique si un número es apocalíptico:
 /*
 Número apocalíptico: todo número natural n que cumple que 2^n contiene la secuencia 666. Por ejemplo, los números 157 y 192 son números apocalípticos.  Nota: el número 2^192 es tan grande que aunque es apocalíptico, MySQL dice que no lo es, incluso aunque se declaren las variables como FLOAT(65)
 */-- --------------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS EsApocaliptico;
+DELIMITER //
+
+CREATE FUNCTION EsApocaliptico(n INT) RETURNS BOOL
+BEGIN
+    DECLARE potencia VARCHAR(1000);
+    
+    IF n IS NULL OR n < 0 THEN
+        RETURN FALSE;
+    END IF;
+    
+    SET potencia = CAST(POW(2, n) AS CHAR);
+    
+    RETURN INSTR(potencia, '666') > 0;
+END //
+
+DELIMITER ;
+
+SELECT EsApocaliptico(157), EsApocaliptico(192), EsApocaliptico(100);
+
+-- --------------------------------------------------------------------------------------
 -- Ejercicio 32. Crea un subprograma que nos saque por pantalla los números apocalípticos comprendidos entre un rango de números que le pasaremos como parámetro
+DROP PROCEDURE IF EXISTS Ejercicio32;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio32(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsApocaliptico(i) THEN
+                SELECT i AS 'Número Apocalíptico';
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio32(1, 200);
+
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 33. Crea un subprograma que alamacene en una tabla los números apocalípticos comprendidos entre un rango de números que le pasaremos como parámetro
+DROP TABLE IF EXISTS NumerosApocalipticos;
+CREATE TABLE NumerosApocalipticos (
+    numero INT PRIMARY KEY
+);
+
+DROP PROCEDURE IF EXISTS Ejercicio33;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio33(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        TRUNCATE TABLE NumerosApocalipticos;
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsApocaliptico(i) THEN
+                INSERT INTO NumerosApocalipticos VALUES (i);
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+        
+        SELECT * FROM NumerosApocalipticos;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio33(1, 500);
+
 -- --------------------------------------------------------------------------------------
 -- Ejercicio 34. Crea un subprograma que alamacene en una tabla todos los números entre un rango de números que le pasaremos como parámetro y que indicará en la misma tabla si cada número es feliz o infeliz:
 /*
 Número feliz: todo número natural que cumple que si sumamos los cuadrados de sus dígitos y seguimos el proceso con los resultados obtenidos el resultado es 1. Por ejemplo, el número 203 es un número feliz ya que 2^2+0^2+3^2=13; 1^2+3^2=10; 1^2+0^2=1.
 Número infeliz: todo número natural que no es un número feliz. Por ejemplo, el número 16 es un número infeliz.
-*/-- --------------------------------------------------------------------------------------
+*/
+
+-- Función: suma de cuadrados de dígitos
+DROP FUNCTION IF EXISTS SumaCuadradosDigitos;
+DELIMITER //
+
+CREATE FUNCTION SumaCuadradosDigitos(numero INT) RETURNS INT
+BEGIN
+    DECLARE suma INT DEFAULT 0;
+    DECLARE digito INT;
+    
+    IF numero IS NULL OR numero < 0 THEN
+        RETURN 0;
+    END IF;
+    
+    WHILE numero > 0 DO
+        SET digito = numero % 10;
+        SET suma = suma + (digito * digito);
+        SET numero = numero DIV 10;
+    END WHILE;
+    
+    RETURN suma;
+END //
+
+DELIMITER ;
+
+-- Función: verificar si es feliz (llega a 1)
+DROP FUNCTION IF EXISTS EsFeliz;
+DELIMITER //
+
+CREATE FUNCTION EsFeliz(n INT) RETURNS BOOL
+BEGIN
+    DECLARE actual INT;
+    DECLARE visited VARCHAR(1000);
+    
+    IF n IS NULL OR n <= 0 THEN
+        RETURN FALSE;
+    END IF;
+    
+    SET actual = n;
+    SET visited = '';
+    
+    WHILE actual != 1 AND INSTR(visited, CONCAT(actual, ',')) = 0 DO
+        SET visited = CONCAT(visited, actual, ',');
+        SET actual = SumaCuadradosDigitos(actual);
+    END WHILE;
+    
+    RETURN actual = 1;
+END //
+
+DELIMITER ;
+
+SELECT EsFeliz(203), EsFeliz(16), EsFeliz(7);
+
+DROP TABLE IF EXISTS NumerosFelices;
+CREATE TABLE NumerosFelices (
+    numero INT PRIMARY KEY,
+    esFeliz ENUM('Feliz', 'Infeliz')
+);
+
+DROP PROCEDURE IF EXISTS Ejercicio34;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio34(IN inicio INT, IN fin INT)
+BEGIN
+    DECLARE i INT;
+    
+    IF inicio IS NULL OR fin IS NULL OR inicio > fin THEN
+        SELECT 'Los parámetros no son válidos' AS 'ERROR';
+    ELSE
+        TRUNCATE TABLE NumerosFelices;
+        SET i = inicio;
+        WHILE i <= fin DO
+            IF EsFeliz(i) THEN
+                INSERT INTO NumerosFelices VALUES (i, 'Feliz');
+            ELSE
+                INSERT INTO NumerosFelices VALUES (i, 'Infeliz');
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+        
+        SELECT * FROM NumerosFelices;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio34(1, 30);
+
+-- --------------------------------------------------------------------------------------
 -- Ejercicio 35. Crea un subprograma que alamacene en una tabla todos los números afortunados comprendidos entre uno y un números que le pasaremos como parámetro.
 /*
 Número afortunado: Tomemos la secuencia de todos los naturales a partir del 1: 1, 2, 3, 4, 5,… Tachemos los que aparecen en las posiciones pares. Queda: 1, 3, 5, 7, 9, 11, 13,… Como el segundo número que ha quedado es el 3 tachemos todos los que aparecen en las posiciones múltiplo de 3 empezando desde la posición 1. Queda: 1, 3, 7, 9, 13,… Como el siguiente número que quedó es el 7 tachamos ahora todos los que aparecen en las posiciones múltiplos de 7. Así sucesivamente. Los números que sobreviven se denominan números afortunados.
-*/-- The On-Line Encyclopedia of Integer Sequences. Lucky numbers
+*/
+DROP TABLE IF EXISTS NumerosAfortunados;
+CREATE TABLE NumerosAfortunados (
+    numero INT PRIMARY KEY
+);
+
+DROP PROCEDURE IF EXISTS Ejercicio35;
+DELIMITER //
+
+CREATE PROCEDURE Ejercicio35(IN maximo INT)
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE contador INT DEFAULT 1;
+    DECLARE posicionActual INT;
+    DECLARE numActual INT;
+    DECLARE existe INT DEFAULT 1;
+    
+    -- Tabla temporal para la criba
+    DROP TABLE IF EXISTS CribaTemporal;
+    CREATE TABLE CribaTemporal (
+        numero INT PRIMARY KEY,
+        eliminado BOOL DEFAULT FALSE
+    ) ENGINE = MEMORY;
+    
+    IF maximo IS NULL OR maximo < 1 THEN
+        SELECT 'El parámetro no es válido' AS 'ERROR';
+    ELSE
+        -- Llenar la tabla con números del 1 al máximo
+        WHILE i <= maximo DO
+            INSERT INTO CribaTemporal VALUES (i, FALSE);
+            SET i = i + 1;
+        END WHILE;
+        
+        -- Empezamos desde el segundo número (el 2, pero su posición es 1 en la lista original de impares)
+        -- Primero tachamos los pares (posiciones 2, 4, 6...)
+        SET posicionActual = 2;
+        WHILE posicionActual <= maximo DO
+            UPDATE CribaTemporal SET eliminado = TRUE 
+            WHERE numero = posicionActual AND numero <= maximo;
+            SET posicionActual = posicionActual + 2;
+        END WHILE;
+        
+        -- Ahora procesamos los números que quedaron (la lista de impares)
+        -- Empezamos desde el segundo número de la lista (el 3)
+        SET contador = 2; -- Posición en la lista de no eliminados
+        SET posicionActual = 3;
+        
+        WHILE posicionActual <= maximo DO
+            -- Verificar si posicionActual está eliminado o no existe
+            SET existe = (SELECT COUNT(*) FROM CribaTemporal 
+                         WHERE numero = posicionActual AND NOT eliminado);
+            
+            IF existe > 0 THEN
+                -- Es un número no eliminado, usamos contador como paso
+                SET i = posicionActual * 2;
+                WHILE i <= maximo DO
+                    UPDATE CribaTemporal SET eliminado = TRUE 
+                    WHERE numero = i;
+                    SET i = i + posicionActual;
+                END WHILE;
+            END IF;
+            
+            SET posicionActual = posicionActual + 1;
+        END WHILE;
+        
+        -- Insertar los números no eliminados (afortunados)
+        INSERT INTO NumerosAfortunados
+        SELECT numero FROM CribaTemporal WHERE NOT eliminado;
+        
+        SELECT * FROM NumerosAfortunados;
+        
+        DROP TABLE IF EXISTS CribaTemporal;
+    END IF;
+END //
+
+DELIMITER ;
+
+CALL Ejercicio35(100);
+
+-- The On-Line Encyclopedia of Integer Sequences. Lucky numbers
 -- http://oeis.org/A000959

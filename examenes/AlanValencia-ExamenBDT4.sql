@@ -63,6 +63,7 @@ BEGIN
        
        SET vPalabra= vPalabraCursor;
        SET Contador = 0;
+       SET vCaracterAnterior = '';
        
        
 
@@ -70,9 +71,11 @@ BEGIN
 				SET  vCaracter = LOWER(LEFT(vPalabra, 1));
                  SET vPalabra = SUBSTRING(vPalabra, 2);
                 
-                 IF  vCaracter = vCaracterAnterior THEN SET Contador = Contador + 1; END IF;
+                
+                --  IF  vCaracter = vCaracterAnterior THEN SET Contador = Contador + 1; END IF;
+                 IF  vCaracter = vCaracterAnterior THEN INSERT INTO CaracterDoblesSeguidos VALUES(vIdPalabra, vPalabraCursor); END IF;
                  
-                 IF Contador = 1 THEN INSERT INTO CaracterDoblesSeguidos VALUES(vIdPalabra, vPalabraCursor); END IF;
+                --  IF Contador = 1 THEN INSERT INTO CaracterDoblesSeguidos VALUES(vIdPalabra, vPalabraCursor); END IF;
                  
                 SET vCaracterAnterior = vCaracter;
         END WHILE;

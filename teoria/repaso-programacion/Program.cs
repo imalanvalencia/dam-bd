@@ -64,7 +64,18 @@ public class Program
         Console.WriteLine("\n======================================  Consola ======================================\n");
 
         // MapeaElementos();
-        GroupBy.GroupByMain();
+        Console.WriteLine("\n======================================  GroupBy ======================================\n");
+        // GroupBy.GroupByMain();
+
+        Console.WriteLine("\n======================================  Join ======================================\n");
+        // Join.JoinMain();
+
+        Console.WriteLine("\n======================================  SelectMany ======================================\n");
+        // SelectMany.SelectManyMain();
+
+        Console.WriteLine("\n======================================  Zip ======================================\n");
+        Zip.ZipMain();
+
 
         Console.WriteLine("\n======================================  Consola ======================================\n");
 

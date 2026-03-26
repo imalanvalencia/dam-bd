@@ -52,8 +52,41 @@ public class GroupBy
         Console.WriteLine($"¿Todas las cantidades son positivas? : {(todosSonPositivos ? "Si" : "No")}");
 
 
-        // var saldoPorPersona = fondoComun.GroupBy(r => r.Nombre, (g, rg) => new { Nombre = g, Saldo = rg.Sum(rgr => rgr.Cantidad) }).OrderBy(ns => ns.Nombre);
-        var saldoPorPersona = fondoComun.GroupBy(r => r.Nombre, (g, rg) => new { Nombre = g, Saldo = rg.Sum(rgr => rgr.Cantidad) }).OrderBy(ns => ns.Nombre);
-        // ImprimeElementos("Saldo por persona: ", saldoPorPersona);
+        var saldoPorPersona = fondoComun
+            .GroupBy(r => r.Nombre,
+            (g, rg) => new
+            {
+                Nombre = g,
+                Saldo = rg.Sum(rgr => rgr.Cantidad)
+            }).OrderBy(
+                ns => ns.Nombre
+            );
+        ImprimeElementos("Saldo por persona: ", saldoPorPersona);
+
+        var operacionesPorPersona = fondoComun
+            .GroupBy(
+                r => r.Nombre,
+                (g, rg) => new
+                {
+                    Nombre = g,
+                    NumeroOperaciones = rg.Count()
+                }).OrderBy(
+                ns => ns.Nombre
+            );
+        ImprimeElementos("Numero de operaciones por persona: ", operacionesPorPersona);
+
+
+        var maximoOperacionesPorPersona = fondoComun
+                    .GroupBy(
+                        r => r.Nombre,
+                        (g, rg) => new
+                        {
+                            Nombre = g,
+                            NumeroOperaciones = rg.Max(e => e.Cantidad)
+                        }).OrderBy(
+                        ns => ns.Nombre
+                    );
+        ImprimeElementos("Maximo de operaciones por persona: ", maximoOperacionesPorPersona);
+
     }
 }
